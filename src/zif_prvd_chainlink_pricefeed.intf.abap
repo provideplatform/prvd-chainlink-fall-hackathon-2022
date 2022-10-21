@@ -5,6 +5,7 @@ INTERFACE zif_prvd_chainlink_pricefeed
             from_currency TYPE waers,
             to_currency TYPE waers,
             smartcontractaddress TYPE zproubc_smartcontract_addr,
+            networkid type zprvd_nchain_networkid,
             txn_hash TYPE string,
             txn_processed_at TYPE timestampl,
             user_responsible TYPE sy-uname,
