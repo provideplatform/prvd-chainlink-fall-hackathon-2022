@@ -17,15 +17,13 @@ PROTECTED SECTION.
              authenticate_temp,
              authenticate_token,
              select_pricefeed_contracts,
-             generate_pricefeed_contract,
+             generate_pricefeed_contract IMPORTING is_selected_pricefeed TYPE zprvdpricefeed,
              get_chainlink_marketrate_files,
              update_from_marketrate_file,
-             execute_pricefeed_contract.
+             execute_pricefeed_contract EXPORTING es_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
 PRIVATE SECTION.
     METHODS: get_nchain_helper EXPORTING eo_prvd_nchain_helper TYPE REF TO zcl_proubc_nchain_helper.
 ENDCLASS.
-
-
 
 CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
 
@@ -79,14 +77,18 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
 
   METHOD zif_prvd_chainlink_pricefeed~call_chainlink_pricefeeds.
 
-    DATA: lv_sap_chainlink_timestampl TYPE timestampl.
+    DATA: lv_sap_chainlink_timestampl TYPE timestampl,
+          ls_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result,
+          lt_pricefeed_results TYPE zif_prvd_chainlink_pricefeed=>tty_pricefeed_results.
 
     GET TIME STAMP FIELD lv_sap_chainlink_timestampl.
 
     me->select_pricefeed_contracts( ).
     LOOP AT lt_selected_contracts ASSIGNING FIELD-SYMBOL(<fs_selected_contract>).
-        me->generate_pricefeed_contract( ).
-        me->execute_pricefeed_contract( ).
+        CLEAR: ls_pricefeed_result.
+        me->generate_pricefeed_contract( EXPORTING is_selected_pricefeed = <fs_selected_contract> ).
+        me->execute_pricefeed_contract( IMPORTING es_pricefeed_result = ls_pricefeed_result ).
+        APPEND ls_pricefeed_result TO lt_pricefeed_results.
     ENDLOOP.
 
   ENDMETHOD.
@@ -114,6 +116,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           ls_tcurr_entry TYPE tcurr,
           lt_tcurr_entries TYPE TABLE OF tcurr.
 
+          "get the pricefeed files and parse them into pricefeed results
+
           LOOP AT lt_pricefeed_results ASSIGNING FIELD-SYMBOL(<fs_pricefeed_results>).
             CLEAR ls_tcurr_entry.
             ls_tcurr_entry-fcurr = <fs_pricefeed_results>-from_currency.
@@ -126,6 +130,11 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
             APPEND ls_tcurr_entry TO lt_tcurr_entries.
           ENDLOOP.
 
+  ENDMETHOD.
+
+  METHOD zif_prvd_chainlink_pricefeed~archive_files.
+               "iv_directorylocation
+               "iv_archivelocation
   ENDMETHOD.
 
   METHOD zif_prvd_chainlink_pricefeed~update_s4hana_market_rates.
@@ -144,6 +153,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD execute_pricefeed_contract.
+    data: ls_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
+          es_pricefeed_result = ls_pricefeed_result.
   ENDMETHOD.
 
   METHOD get_nchain_helper.

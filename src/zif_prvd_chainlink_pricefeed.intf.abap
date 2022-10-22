@@ -17,8 +17,12 @@ INTERFACE zif_prvd_chainlink_pricefeed
                                         iv_prvduser TYPE string OPTIONAL
                                         iv_prvduserpw TYPE string OPTIONAL,
             call_chainlink_pricefeeds,
-            generate_s4_market_rate_file,
-            read_market_rate_file,
-            update_s4hana_market_rates.
+            generate_s4_market_rate_file importing it_pricefeed_results type tty_pricefeed_results
+                                         EXPORTING ev_filelocation type zcasesensitivechar255,
+            read_market_rate_file IMPORTING iv_directorylocation type zcasesensitivechar255
+                                  EXPORTING et_tcurr type FTDF_TAB_TCURR,
+            archive_files IMPORTING iv_directorylocation type zcasesensitivechar255
+                                    iv_archivelocation type zcasesensitivechar255,
+            update_s4hana_market_rates IMPORTING it_tcurr type FTDF_TAB_TCURR.
 
 ENDINTERFACE.
