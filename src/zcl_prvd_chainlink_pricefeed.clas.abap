@@ -10,14 +10,16 @@ PUBLIC SECTION.
  CLASS-METHODS: factory EXPORTING eo_prvd_chainlink_pricefeed TYPE REF TO zcl_prvd_chainlink_pricefeed.
 
 PROTECTED SECTION.
-    DATA: lo_prvd_nchain_helper TYPE REF TO zcl_proubc_nchain_helper,
+    DATA: lo_prvd_api_helper TYPE REF TO zcl_proubc_api_helper,
+          lo_prvd_nchain_helper TYPE REF TO zcl_proubc_nchain_helper,
           lt_selected_contracts TYPE TABLE OF zprvdpricefeed.
     METHODS: authenticate_basic IMPORTING iv_prvduser TYPE string
                                           iv_prvduserpw TYPE string,
              authenticate_temp,
              authenticate_token,
              select_pricefeed_contracts,
-             generate_pricefeed_contract IMPORTING is_selected_pricefeed TYPE zprvdpricefeed,
+             generate_pricefeed_contract IMPORTING is_selected_pricefeed TYPE zprvdpricefeed
+                                         EXPORTING es_pricefeed_contract_req TYPE zif_proubc_nchain=>ty_chainlinkpricefeed_req,
              get_chainlink_marketrate_files,
              update_from_marketrate_file,
              execute_pricefeed_contract EXPORTING es_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
@@ -51,8 +53,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     GET PARAMETER ID 'ZPRVDTENANT' FIELD lv_tenant.
     GET PARAMETER ID 'ZPRVDSUBJACCTID' FIELD lv_subj_acct.
     GET PARAMETER ID 'ZPRVDWRKGRP' FIELD lv_workgroup_id.
-    me->get_nchain_helper( ).
-    lo_prvd_nchain_helper->call_ident_api(
+    lo_prvd_api_helper = NEW zcl_proubc_api_helper( iv_tenant = lv_tenant iv_subject_acct_id = lv_subj_acct iv_workgroup_id = lv_workgroup_id ).
+    lo_prvd_api_helper->call_ident_api(
       EXPORTING
         iv_tenant      = lv_tenant
         iv_subjacct    = lv_subj_acct
@@ -61,8 +63,9 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
 *        ev_authtoken   =
 *        status         =
 *        ev_bpiendpoint =
-*    ).
     ).
+    lo_prvd_api_helper->GET_NCHAIN_HELPER( IMPORTING eo_prvd_nchain_helper = lo_prvd_nchain_helper ).
+
   ENDMETHOD.
 
   METHOD select_pricefeed_contracts.
@@ -70,6 +73,18 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD generate_pricefeed_contract.
+    DATA: ls_selectedcontract TYPE zif_proubc_nchain=>ty_chainlinkpricefeed_req.
+          me->get_nchain_helper( ).
+          data: lv_pricefeedname type string.
+                CONCATENATE is_selected_pricefeed-currency1 '/' is_selected_pricefeed-currency2 into lv_pricefeedname.
+          me->lo_prvd_nchain_helper->smartcontract_factory(  EXPORTING iv_smartcontractaddress = is_selected_pricefeed-zprvdsmartcontractaddr
+                                          iv_name                 = lv_pricefeedname
+                                          iv_contract             = '' "this is more complex
+                                          iv_walletaddress        = '' "from the wallet we created earlier
+                                          iv_nchain_networkid     = is_selected_pricefeed-zprvdnchainnetworkid "goerli testnet nchain id, check if this always same
+                                          iv_contracttype         = 'price-feed'
+                                IMPORTING es_selectedContract = ls_selectedcontract ).
+         es_pricefeed_contract_req = ls_selectedcontract.
   ENDMETHOD.
 
   METHOD get_chainlink_marketrate_files.
@@ -153,8 +168,38 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD execute_pricefeed_contract.
-    data: ls_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
+    DATA: ls_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
           es_pricefeed_result = ls_pricefeed_result.
+
+*    me->lo_prvd_nchain_helper->lo_nchain_api->zif_proubc_nchain~createpricefeedcontract(
+*      EXPORTING
+*        is_pricefeedcontract = ls_selectedcontract
+*      IMPORTING
+*        ev_apiresponsestr    = lv_createdcontract_str
+*        ev_apiresponse       = lv_createdcontract_data
+*        ev_httpresponsecode  = lv_createdcontract_responsecd
+**    ).
+*    CASE lv_createdcontract_responsecd.
+*      WHEN 202.
+*      WHEN OTHERS.
+*    ENDCASE.
+**
+**    me->lo_nchain_api->zif_proubc_nchain~executecontract(
+**      EXPORTING
+**        iv_contract_id      = '0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e'
+**        is_execcontractreq  = ls_executecontract
+**      IMPORTING
+**        ev_apiresponsestr   = lv_executecontract_str
+**        ev_apiresponse      =  lv_executecontract_data
+**        ev_httpresponsecode =  lv_executecontract_responsecd
+**    ).
+*    CASE lv_executecontract_responsecd.
+*        WHEN 202.
+*        WHEN OTHERS.
+*    ENDCASE.
+
+
+
   ENDMETHOD.
 
   METHOD get_nchain_helper.
