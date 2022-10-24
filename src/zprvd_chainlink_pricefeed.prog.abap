@@ -18,4 +18,7 @@ GET PARAMETER ID 'ZPRVDWRKGRPID' FIELD p_wrkgrp.
 
 START-OF-SELECTION.
 lo_prvd_chainlink_pricefeed = NEW zcl_prvd_chainlink_pricefeed( ).
+lo_prvd_chainlink_pricefeed->setup( EXPORTING iv_tenant = p_tenant
+                                              iv_subj_acct = p_sbjact
+                                              iv_workgroup_id = p_wrkgrp ).
 lo_prvd_chainlink_pricefeed->zif_prvd_chainlink_pricefeed~prvd_authenticate( iv_authtype = 'R'  ).

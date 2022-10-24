@@ -8,11 +8,17 @@ PUBLIC SECTION.
  INTERFACES zif_prvd_chainlink_pricefeed .
 
  CLASS-METHODS: factory EXPORTING eo_prvd_chainlink_pricefeed TYPE REF TO zcl_prvd_chainlink_pricefeed.
+ METHODS: setup IMPORTING Iv_tenant TYPE zprvdtenantid OPTIONAL
+                          Iv_subj_acct TYPE zprvdtenantid OPTIONAL
+                          Iv_workgroup_id TYPE zprvdtenantid OPTIONAL.
 
 PROTECTED SECTION.
     DATA: lo_prvd_api_helper TYPE REF TO zcl_proubc_api_helper,
           lo_prvd_nchain_helper TYPE REF TO zcl_proubc_nchain_helper,
-          lt_selected_contracts TYPE TABLE OF zprvdpricefeed.
+          lt_selected_contracts TYPE TABLE OF zprvdpricefeed,
+          lv_tenant TYPE zprvdtenantid,
+          lv_subj_acct TYPE zprvdtenantid,
+          lv_workgroup_id TYPE zprvdtenantid.
     METHODS: authenticate_basic IMPORTING iv_prvduser TYPE string
                                           iv_prvduserpw TYPE string,
              authenticate_temp,
@@ -46,13 +52,15 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD authenticate_token.
-    DATA: lv_tenant TYPE zprvdtenantid,
-          lv_subj_acct TYPE zprvdtenantid,
-          lv_workgroup_id TYPE zprvdtenantid.
-
+    IF lv_tenant IS INITIAL.
     GET PARAMETER ID 'ZPRVDTENANT' FIELD lv_tenant.
+    ENDIF.
+    IF lv_subj_acct IS INITIAL.
     GET PARAMETER ID 'ZPRVDSUBJACCTID' FIELD lv_subj_acct.
+    ENDIF.
+    IF lv_workgroup_id IS INITIAL.
     GET PARAMETER ID 'ZPRVDWRKGRP' FIELD lv_workgroup_id.
+    ENDIF.
     lo_prvd_api_helper = NEW zcl_proubc_api_helper( iv_tenant = lv_tenant iv_subject_acct_id = lv_subj_acct iv_workgroup_id = lv_workgroup_id ).
     lo_prvd_api_helper->call_ident_api(
       EXPORTING
@@ -64,7 +72,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
 *        status         =
 *        ev_bpiendpoint =
     ).
-    lo_prvd_api_helper->GET_NCHAIN_HELPER( IMPORTING eo_prvd_nchain_helper = lo_prvd_nchain_helper ).
+    lo_prvd_api_helper->get_nchain_helper( IMPORTING eo_prvd_nchain_helper = lo_prvd_nchain_helper ).
 
   ENDMETHOD.
 
@@ -75,8 +83,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   METHOD generate_pricefeed_contract.
     DATA: ls_selectedcontract TYPE zif_proubc_nchain=>ty_chainlinkpricefeed_req.
           me->get_nchain_helper( ).
-          data: lv_pricefeedname type string.
-                CONCATENATE is_selected_pricefeed-currency1 '/' is_selected_pricefeed-currency2 into lv_pricefeedname.
+          DATA: lv_pricefeedname TYPE string.
+                CONCATENATE is_selected_pricefeed-currency1 '/' is_selected_pricefeed-currency2 INTO lv_pricefeedname.
           me->lo_prvd_nchain_helper->smartcontract_factory(  EXPORTING iv_smartcontractaddress = is_selected_pricefeed-zprvdsmartcontractaddr
                                           iv_name                 = lv_pricefeedname
                                           iv_contract             = '' "this is more complex
@@ -208,6 +216,12 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     ELSE.
         lo_prvd_nchain_helper = NEW zcl_proubc_nchain_helper( ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD setup.
+    lv_tenant = iv_tenant.
+    lv_subj_acct = iv_subj_acct.
+    lv_workgroup_id = iv_workgroup_id.
   ENDMETHOD.
 
 ENDCLASS.
