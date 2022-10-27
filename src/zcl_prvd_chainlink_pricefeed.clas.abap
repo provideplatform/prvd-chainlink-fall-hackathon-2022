@@ -106,13 +106,22 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
 
     GET TIME STAMP FIELD lv_sap_chainlink_timestampl.
 
-    me->select_pricefeed_contracts( ).
-    LOOP AT lt_selected_contracts ASSIGNING FIELD-SYMBOL(<fs_selected_contract>).
-        CLEAR: ls_pricefeed_result.
-        me->generate_pricefeed_contract( EXPORTING is_selected_pricefeed = <fs_selected_contract> ).
-        me->execute_pricefeed_contract( IMPORTING es_pricefeed_result = ls_pricefeed_result ).
-        APPEND ls_pricefeed_result TO lt_pricefeed_results.
-    ENDLOOP.
+    lo_prvd_nchain_helper->call_chainlink_pricefeed(
+      EXPORTING
+        iv_inputcurrency  = 'ETH'
+        iv_inputamount    = '1'
+        iv_outputcurrency = 'USD'
+*      IMPORTING
+*        ev_outputamount   =
+    ).
+" start using this after first successful test
+*    me->select_pricefeed_contracts( ).
+*    LOOP AT lt_selected_contracts ASSIGNING FIELD-SYMBOL(<fs_selected_contract>).
+*        CLEAR: ls_pricefeed_result.
+*        me->generate_pricefeed_contract( EXPORTING is_selected_pricefeed = <fs_selected_contract> ).
+*        me->execute_pricefeed_contract( IMPORTING es_pricefeed_result = ls_pricefeed_result ).
+*        APPEND ls_pricefeed_result TO lt_pricefeed_results.
+*    ENDLOOP.
 
   ENDMETHOD.
 

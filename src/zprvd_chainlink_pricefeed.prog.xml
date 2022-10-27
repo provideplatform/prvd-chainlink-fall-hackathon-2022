@@ -16,6 +16,24 @@
      <ENTRY>Process Market Rate Updates from Chainlink Pricefeeds</ENTRY>
      <LENGTH>53</LENGTH>
     </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_SBJACT</KEY>
+     <ENTRY>PRVD Subject Account ID</ENTRY>
+     <LENGTH>31</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_TENANT</KEY>
+     <ENTRY>PRVD Organization ID</ENTRY>
+     <LENGTH>28</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_WRKGRP</KEY>
+     <ENTRY>PRVD Workgroup ID</ENTRY>
+     <LENGTH>25</LENGTH>
+    </item>
    </TPOOL>
   </asx:values>
  </asx:abap>
