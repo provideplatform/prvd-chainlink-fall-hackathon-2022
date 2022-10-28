@@ -28,7 +28,11 @@ PROTECTED SECTION.
                                          EXPORTING es_pricefeed_contract_req TYPE zif_proubc_nchain=>ty_chainlinkpricefeed_req,
              get_chainlink_marketrate_files,
              update_from_marketrate_file,
-             execute_pricefeed_contract EXPORTING es_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
+             execute_pricefeed_contract EXPORTING es_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result,
+             parse_latestround IMPORTING is_execute_contract_resp type zif_proubc_nchain=>ty_executecontract_resp
+                                    exporting es_latestround type zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result,
+             map_latestround_to_result IMPORTING is_latestround type zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result
+                                       EXPORTING es_pricefeedresult type zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
 PRIVATE SECTION.
     METHODS: get_nchain_helper EXPORTING eo_prvd_nchain_helper TYPE REF TO zcl_proubc_nchain_helper.
 ENDCLASS.
@@ -101,6 +105,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   METHOD zif_prvd_chainlink_pricefeed~call_chainlink_pricefeeds.
 
     DATA: lv_sap_chainlink_timestampl TYPE timestampl,
+          ls_execute_contract_resp type zif_proubc_nchain=>ty_executecontract_resp,
+          ls_latestround type zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result,
           ls_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result,
           lt_pricefeed_results TYPE zif_prvd_chainlink_pricefeed=>tty_pricefeed_results.
 
@@ -111,8 +117,21 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
         iv_inputcurrency  = 'ETH'
         iv_inputamount    = '1'
         iv_outputcurrency = 'USD'
-*      IMPORTING
+      IMPORTING
+        es_contract_resp = ls_execute_contract_resp
 *        ev_outputamount   =
+    ).
+    me->parse_latestround(
+    EXPORTING
+        is_execute_contract_resp = ls_execute_contract_resp
+      IMPORTING
+        es_latestround = ls_latestround
+    ).
+    me->map_latestround_to_result(
+      EXPORTING
+        is_latestround     = ls_latestround
+      IMPORTING
+        es_pricefeedresult = ls_pricefeed_result
     ).
 " start using this after first successful test
 *    me->select_pricefeed_contracts( ).
@@ -231,6 +250,12 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     lv_tenant = iv_tenant.
     lv_subj_acct = iv_subj_acct.
     lv_workgroup_id = iv_workgroup_id.
+  ENDMETHOD.
+
+  method parse_latestround.
+  ENDMETHOD.
+
+  method map_latestround_to_result.
   ENDMETHOD.
 
 ENDCLASS.
