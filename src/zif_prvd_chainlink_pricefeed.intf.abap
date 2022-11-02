@@ -15,11 +15,11 @@ INTERFACE zif_prvd_chainlink_pricefeed
   TYPES: tty_pricefeed_results TYPE STANDARD TABLE OF ty_chainlink_pricefeed_result.
 
   TYPES: BEGIN OF ty_latestrounddata_result,
-           roundid         TYPE i, "uint80
-           answer          TYPE i, "int256 <-- this is your price, still needs some unit conversions for SAP
-           startedat       TYPE i, "uint256
-           updatedat       TYPE i, "uint256
-           answeredinround TYPE i, "uint80
+           roundid         TYPE int8, "uint80
+           answer          TYPE int8, "int256 <-- this is your price, still needs some unit conversions for SAP
+           startedat       TYPE int8, "uint256
+           updatedat       TYPE int8, "uint256
+           answeredinround TYPE int8, "uint80
          END OF ty_latestrounddata_result.
 
   METHODS:  prvd_authenticate IMPORTING iv_authtype   TYPE char1

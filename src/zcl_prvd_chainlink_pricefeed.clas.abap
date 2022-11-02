@@ -10,7 +10,11 @@ PUBLIC SECTION.
  CLASS-METHODS: factory EXPORTING eo_prvd_chainlink_pricefeed TYPE REF TO zcl_prvd_chainlink_pricefeed.
  METHODS: setup IMPORTING Iv_tenant TYPE zprvdtenantid OPTIONAL
                           Iv_subj_acct TYPE zprvdtenantid OPTIONAL
-                          Iv_workgroup_id TYPE zprvdtenantid OPTIONAL.
+                          Iv_workgroup_id TYPE zprvdtenantid OPTIONAL,
+          format_eth_price IMPORTING !iv_chainlink_eth_price TYPE i
+                           EXPORTING !ev_sap_eth_price TYPE ukurs
+                                     !ev_sap_ffact     TYPE ffact
+                                     !ev_sap_tfact     TYPE tfact.
 
 PROTECTED SECTION.
     DATA: lo_prvd_api_helper TYPE REF TO zcl_proubc_api_helper,
@@ -29,10 +33,11 @@ PROTECTED SECTION.
              get_chainlink_marketrate_files,
              update_from_marketrate_file,
              execute_pricefeed_contract EXPORTING es_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result,
-             parse_latestround IMPORTING is_execute_contract_resp type zif_proubc_nchain=>ty_executecontract_resp
-                                    exporting es_latestround type zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result,
-             map_latestround_to_result IMPORTING is_latestround type zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result
-                                       EXPORTING es_pricefeedresult type zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
+             parse_latestround IMPORTING is_execute_contract_resp TYPE zif_proubc_nchain=>ty_executecontract_resp
+                                    EXPORTING es_latestround TYPE zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result,
+             map_latestround_to_result IMPORTING is_latestround TYPE zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result
+                                                 Is_execute_contract_resp TYPE zif_proubc_nchain=>ty_executecontract_resp
+                                       EXPORTING es_pricefeedresult TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
 PRIVATE SECTION.
     METHODS: get_nchain_helper EXPORTING eo_prvd_nchain_helper TYPE REF TO zcl_proubc_nchain_helper.
 ENDCLASS.
@@ -105,8 +110,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   METHOD zif_prvd_chainlink_pricefeed~call_chainlink_pricefeeds.
 
     DATA: lv_sap_chainlink_timestampl TYPE timestampl,
-          ls_execute_contract_resp type zif_proubc_nchain=>ty_executecontract_resp,
-          ls_latestround type zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result,
+          ls_execute_contract_resp TYPE zif_proubc_nchain=>ty_executecontract_resp,
+          ls_latestround TYPE zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result,
           ls_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result,
           lt_pricefeed_results TYPE zif_prvd_chainlink_pricefeed=>tty_pricefeed_results.
 
@@ -130,6 +135,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     me->map_latestround_to_result(
       EXPORTING
         is_latestround     = ls_latestround
+        is_execute_contract_resp = ls_execute_contract_resp
       IMPORTING
         es_pricefeedresult = ls_pricefeed_result
     ).
@@ -252,10 +258,94 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     lv_workgroup_id = iv_workgroup_id.
   ENDMETHOD.
 
-  method parse_latestround.
+  METHOD parse_latestround.
+
+* response values are as specified in the as exact order as in returns
+*       function latestRoundData()
+*    public
+*    view
+*    virtual
+*    override
+*    returns (
+*      uint80 roundId,
+*      int256 answer, <-- this is your price, still needs some unit conversions for SAP
+*      uint256 startedAt,
+*      uint256 updatedAt,
+*      uint80 answeredInRound
+*    ) "log the other data - important refere
+
+  DATA: ls_latestround TYPE zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result,
+        ls_response_tab TYPE REF TO data.
+  FIELD-SYMBOLS: <fs_responses> TYPE any,
+                <fs_t_responses> TYPE ANY TABLE,
+                <fs_roundid> TYPE char80,
+                <fs_answer> TYPE char256,
+                <fs_startedat> TYPE char256,
+                <fs_updatedat> TYPE char256,
+                <fs_answeredinround> TYPE char80.
+  DATA: lo_roundid TYPE REF TO data,
+        lo_answer TYPE REF TO data,
+        lo_startedat TYPE REF TO data,
+        lo_updatedat TYPE REF TO data,
+        lo_answeredinround TYPE REF TO data.
+
+  ASSIGN COMPONENT 'RESPONSE' OF STRUCTURE is_execute_contract_resp  TO <fs_responses>.
+  ls_response_tab = <fs_responses>.
+  ASSIGN ls_response_tab->* TO <fs_t_responses>.
+  LOOP AT <fs_t_responses> ASSIGNING FIELD-SYMBOL(<fs_index>).
+    CASE sy-tabix.
+    WHEN 1.
+        GET REFERENCE OF <fs_index> INTO lo_roundid.
+        ASSIGN lo_roundid->* TO FIELD-SYMBOL(<fs_roundid_raw>).
+        DATA: lv_roundid_raw TYPE REF TO data.
+        lv_roundid_raw = <fs_roundid_raw>.
+        ASSIGN lv_roundid_raw->* TO FIELD-SYMBOL(<fs_roundid_raw2>).
+        "<fs_roundid> = <fs_roundid_raw>.
+        ls_latestround-roundid = <fs_roundid_raw2>.
+    WHEN 2.
+        GET REFERENCE OF <fs_index> INTO lo_answer.
+        ASSIGN lo_answer->* TO FIELD-SYMBOL(<fs_answer_raw>).
+        DATA: lv_answer_raw TYPE REF TO data.
+        lv_answer_raw = <fs_answer_raw>.
+        ASSIGN lv_answer_raw->* TO FIELD-SYMBOL(<fs_answer_raw2>).
+        ls_latestround-answer = <fs_answer_raw2>.
+    WHEN 3.
+        GET REFERENCE OF <fs_index> INTO lo_startedat.
+        assign lo_startedat->* to FIELD-SYMBOL(<fs_startedat_raw>).
+        data: lv_startedat_raw type ref to data.
+        lv_startedat_raw = <fs_startedat_raw>.
+        assign lv_startedat_raw->* to FIELD-SYMBOL(<fs_startedat_raw2>).
+        ls_latestround-startedat = <fs_startedat_raw2>.
+    WHEN 4.
+        GET REFERENCE OF <fs_index> INTO lo_updatedat.
+        assign lo_updatedat->* to FIELD-SYMBOL(<fs_updatedat_raw>).
+        data: lv_updatedat_raw type ref to data.
+        lv_updatedat_raw = <fs_updatedat_raw>.
+        assign lv_updatedat_raw->* to FIELD-SYMBOL(<fs_updatedat_raw2>).
+        ls_latestround-updatedat = <fs_updatedat_raw2>.
+    WHEN 5.
+        GET REFERENCE OF <fs_index> INTO lo_answeredinround.
+        assign lo_answeredinround->* to FIELD-SYMBOL(<fs_answeredinround_raw>).
+        data: lv_answeredinround_raw type ref to data.
+        lv_answeredinround_raw = <fs_answeredinround_raw>.
+        ASSign lv_answeredinround_raw->* to FIELD-SYMBOL(<fs_answeredinround_raw2>).
+        ls_latestround-answeredinround = <fs_answeredinround_raw2>.
+    WHEN OTHERS.
+    ENDCASE.
+  ENDLOOP.
+    es_latestround = ls_latestround.
   ENDMETHOD.
 
-  method map_latestround_to_result.
+  METHOD map_latestround_to_result.
+  DATA: ls_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
+
+  ls_result-user_responsible = sy-uname.
+  "LS_RESULT-walletid =
+
+
+  ENDMETHOD.
+
+  METHOD format_eth_price.
   ENDMETHOD.
 
 ENDCLASS.
