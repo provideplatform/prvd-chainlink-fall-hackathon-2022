@@ -18,6 +18,12 @@
     </item>
     <item>
      <ID>S</ID>
+     <KEY>P_IPFS</KEY>
+     <ENTRY>Generate File to IPFS</ENTRY>
+     <LENGTH>29</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
      <KEY>P_SBJACT</KEY>
      <ENTRY>PRVD Subject Account ID</ENTRY>
      <LENGTH>31</LENGTH>
@@ -33,6 +39,12 @@
      <KEY>P_WRKGRP</KEY>
      <ENTRY>PRVD Workgroup ID</ENTRY>
      <LENGTH>25</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_ZKP</KEY>
+     <ENTRY>Create Baseline ZKP</ENTRY>
+     <LENGTH>27</LENGTH>
     </item>
    </TPOOL>
   </asx:values>
