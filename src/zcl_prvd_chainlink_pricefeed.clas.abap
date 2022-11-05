@@ -14,10 +14,12 @@ CLASS zcl_prvd_chainlink_pricefeed DEFINITION
                              iv_do_baseline  TYPE char1 OPTIONAL
                              iv_do_ipfs      TYPE char1 OPTIONAL,
       format_eth_price IMPORTING !iv_chainlink_eth_price TYPE int8
-                                 !iv_to_currency         TYPE WAERS_CURC
+                                 !iv_to_currency         TYPE waers_curc
                        EXPORTING !ev_sap_eth_price       TYPE ukurs
-                                 !ev_sap_ffact           TYPE WAERS_CURC
-                                 !ev_sap_tfact           TYPE WAERS_CURC.
+                                 !ev_sap_ffact           TYPE waers_curc
+                                 !ev_sap_tfact           TYPE waers_curc,
+      save_result     IMPORTING !is_pricefeedresult TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result
+                      EXPORTING !es_pf_table        TYPE zprvd_pf_results.
 
   PROTECTED SECTION.
     DATA: lo_prvd_api_helper    TYPE REF TO zcl_proubc_api_helper,
@@ -25,7 +27,9 @@ CLASS zcl_prvd_chainlink_pricefeed DEFINITION
           lt_selected_contracts TYPE TABLE OF zprvdpricefeed,
           lv_tenant             TYPE zprvdtenantid,
           lv_subj_acct          TYPE zprvdtenantid,
-          lv_workgroup_id       TYPE zprvdtenantid.
+          lv_workgroup_id       TYPE zprvdtenantid,
+          lv_do_baseline        type char1,
+          lv_do_ipfs            type char1.
     METHODS: authenticate_basic IMPORTING iv_prvduser   TYPE string
                                           iv_prvduserpw TYPE string,
       authenticate_temp,
@@ -40,8 +44,8 @@ CLASS zcl_prvd_chainlink_pricefeed DEFINITION
                         EXPORTING es_latestround           TYPE zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result,
       map_latestround_to_result IMPORTING is_latestround           TYPE zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result
                                           is_execute_contract_resp TYPE zif_proubc_nchain=>ty_executecontract_resp
-                                          iv_from_currency         TYPE WAERS_CURC
-                                          iv_to_currency           TYPE WAERS_CURC
+                                          iv_from_currency         TYPE waers_curc
+                                          iv_to_currency           TYPE waers_curc
                                 EXPORTING es_pricefeedresult       TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
   PRIVATE SECTION.
     METHODS: get_nchain_helper EXPORTING eo_prvd_nchain_helper TYPE REF TO zcl_proubc_nchain_helper.
@@ -119,8 +123,9 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           ls_latestround              TYPE zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result,
           ls_pricefeed_result         TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result,
           lt_pricefeed_results        TYPE zif_prvd_chainlink_pricefeed=>tty_pricefeed_results,
-          lv_from_currency            TYPE WAERS_CURC,
-          lv_to_currency              TYPE WAERS_CURC.
+          lv_from_currency            TYPE waers_curc,
+          lv_to_currency              TYPE waers_curc,
+          lt_bpi_obj                  type zbpiobj.
 
     GET TIME STAMP FIELD lv_sap_chainlink_timestampl.
 
@@ -150,6 +155,25 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
       IMPORTING
         es_pricefeedresult = ls_pricefeed_result
     ).
+    DATA: ls_pf_table_result TYPE zprvd_pf_results,
+          lt_tcurr type ftdf_tab_tcurr.
+    me->save_result( EXPORTING is_pricefeedresult = ls_pricefeed_result
+                     IMPORTING es_pf_table  = ls_pf_table_result ).
+    me->zif_prvd_chainlink_pricefeed~format_to_market_rates( exporting it_pf_results = ls_pf_table_result
+                                                             IMPORTING et_tcurr = lt_tcurr ).
+    me->zif_prvd_chainlink_pricefeed~update_s4hana_market_rates( exporting it_tcurr = lt_tcurr ).
+    if lv_do_baseline is not INITIAL.
+        me->zif_prvd_chainlink_pricefeed~emit_baseline_zkp_msg(
+          EXPORTING
+            is_pricefeed_result =  ls_pf_table_result
+          IMPORTING
+            es_bpiobj           = lt_bpi_obj
+        ).
+    endif.
+    if lv_do_ipfs is not initial.
+        "me->zif_prvd_chainlink_pricefeed~generate_s4_market_rate_file(  ) todo change params
+        "me->zif_prvd_chainlink_pricefeed~move_file_to_ipfs(  )
+    endif.
     " start using this after first successful test
 *    me->select_pricefeed_contracts( ).
 *    LOOP AT lt_selected_contracts ASSIGNING FIELD-SYMBOL(<fs_selected_contract>).
@@ -198,6 +222,9 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
       APPEND ls_tcurr_entry TO lt_tcurr_entries.
     ENDLOOP.
 
+  ENDMETHOD.
+
+  METHOD zif_prvd_chainlink_pricefeed~format_to_market_rates.
   ENDMETHOD.
 
   METHOD zif_prvd_chainlink_pricefeed~archive_files.
@@ -267,6 +294,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     lv_tenant = iv_tenant.
     lv_subj_acct = iv_subj_acct.
     lv_workgroup_id = iv_workgroup_id.
+    lv_do_baseline = iv_do_baseline.
+    lv_do_ipfs = iv_do_ipfs.
   ENDMETHOD.
 
   METHOD parse_latestround.
@@ -472,6 +501,28 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD  zif_prvd_chainlink_pricefeed~move_file_to_ipfs.
+  ENDMETHOD.
+
+  METHOD save_result.
+    DATA: ls_prvd_pf_results TYPE zprvd_pf_results,
+          lt_prvd_pf_results TYPE TABLE OF zprvd_pf_results.
+    "map to to db structure
+    ls_prvd_pf_results-fcurr = is_pricefeedresult-from_currency.
+    ls_prvd_pf_results-gdatu = sy-datum. " todo add to is_pricefeedresult
+    "ls_prvd_pf_results-kurst = is_pricefeedresult- todo add exchanges
+    ls_prvd_pf_results-networkid = is_pricefeedresult-networkid.
+    ls_prvd_pf_results-smartcontractaddress = is_pricefeedresult-smartcontractaddress.
+    ls_prvd_pf_results-tcurr = is_pricefeedresult-to_currency.
+    ls_prvd_pf_results-txn_hash = is_pricefeedresult-txn_hash.
+    ls_prvd_pf_results-txn_processed_at = is_pricefeedresult-txn_processed_at.
+    ls_prvd_pf_results-user_responsible = is_pricefeedresult-user_responsible.
+    ls_prvd_pf_results-walletid = is_pricefeedresult-walletid.
+
+    APPEND ls_prvd_pf_results TO lt_prvd_pf_results.
+    es_pf_table = ls_prvd_pf_results.
+    CLEAR ls_prvd_pf_results.
+    MODIFY zprvd_pf_results FROM TABLE lt_prvd_pf_results.
+
   ENDMETHOD.
 
 ENDCLASS.

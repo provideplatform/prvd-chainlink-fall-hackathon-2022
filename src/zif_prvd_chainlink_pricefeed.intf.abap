@@ -33,6 +33,8 @@ INTERFACE zif_prvd_chainlink_pricefeed
                           EXPORTING ev_contentid    TYPE zcasesensitivechar255,
     read_market_rate_file IMPORTING iv_directorylocation TYPE zcasesensitivechar255
                           EXPORTING et_tcurr             TYPE ftdf_tab_tcurr,
+    format_to_market_rates IMPORTING it_pf_results type zprvd_pf_results
+                            EXPORTING et_tcurr            type ftdf_tab_tcurr,
     archive_files IMPORTING iv_directorylocation TYPE zcasesensitivechar255
                             iv_archivelocation   TYPE zcasesensitivechar255,
     update_s4hana_market_rates IMPORTING it_tcurr TYPE ftdf_tab_tcurr,
