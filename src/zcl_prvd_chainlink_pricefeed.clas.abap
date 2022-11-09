@@ -28,8 +28,8 @@ CLASS zcl_prvd_chainlink_pricefeed DEFINITION
           lv_tenant             TYPE zprvdtenantid,
           lv_subj_acct          TYPE zprvdtenantid,
           lv_workgroup_id       TYPE zprvdtenantid,
-          lv_do_baseline        type char1,
-          lv_do_ipfs            type char1.
+          lv_do_baseline        TYPE char1,
+          lv_do_ipfs            TYPE char1.
     METHODS: authenticate_basic IMPORTING iv_prvduser   TYPE string
                                           iv_prvduserpw TYPE string,
       authenticate_temp,
@@ -125,7 +125,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           lt_pricefeed_results        TYPE zif_prvd_chainlink_pricefeed=>tty_pricefeed_results,
           lv_from_currency            TYPE waers_curc,
           lv_to_currency              TYPE waers_curc,
-          lt_bpi_obj                  type zbpiobj.
+          lt_bpi_obj                  TYPE zbpiobj.
 
     GET TIME STAMP FIELD lv_sap_chainlink_timestampl.
 
@@ -156,24 +156,24 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
         es_pricefeedresult = ls_pricefeed_result
     ).
     DATA: ls_pf_table_result TYPE zprvd_pf_results,
-          lt_tcurr type ftdf_tab_tcurr.
+          lt_tcurr           TYPE ftdf_tab_tcurr.
     me->save_result( EXPORTING is_pricefeedresult = ls_pricefeed_result
                      IMPORTING es_pf_table  = ls_pf_table_result ).
-    me->zif_prvd_chainlink_pricefeed~format_to_market_rates( exporting it_pf_results = ls_pf_table_result
-                                                             IMPORTING et_tcurr = lt_tcurr ).
-    me->zif_prvd_chainlink_pricefeed~update_s4hana_market_rates( exporting it_tcurr = lt_tcurr ).
-    if lv_do_baseline is not INITIAL.
-        me->zif_prvd_chainlink_pricefeed~emit_baseline_zkp_msg(
-          EXPORTING
-            is_pricefeed_result =  ls_pf_table_result
-          IMPORTING
-            es_bpiobj           = lt_bpi_obj
-        ).
-    endif.
-    if lv_do_ipfs is not initial.
-        "me->zif_prvd_chainlink_pricefeed~generate_s4_market_rate_file(  ) todo change params
-        "me->zif_prvd_chainlink_pricefeed~move_file_to_ipfs(  )
-    endif.
+*    me->zif_prvd_chainlink_pricefeed~format_to_market_rates( EXPORTING it_pf_results = ls_pf_table_result
+*                                                             IMPORTING et_tcurr = lt_tcurr ).
+*    me->zif_prvd_chainlink_pricefeed~update_s4hana_market_rates( EXPORTING it_tcurr = lt_tcurr ).
+    IF lv_do_baseline IS NOT INITIAL.
+      me->zif_prvd_chainlink_pricefeed~emit_baseline_zkp_msg(
+        EXPORTING
+          is_pricefeed_result =  ls_pf_table_result
+        IMPORTING
+          es_bpiobj           = lt_bpi_obj
+      ).
+    ENDIF.
+    IF lv_do_ipfs IS NOT INITIAL.
+      "me->zif_prvd_chainlink_pricefeed~generate_s4_market_rate_file(  ) todo change params
+      "me->zif_prvd_chainlink_pricefeed~move_file_to_ipfs(  )
+    ENDIF.
     " start using this after first successful test
 *    me->select_pricefeed_contracts( ).
 *    LOOP AT lt_selected_contracts ASSIGNING FIELD-SYMBOL(<fs_selected_contract>).
@@ -509,7 +509,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     "map to to db structure
     ls_prvd_pf_results-fcurr = is_pricefeedresult-from_currency.
     ls_prvd_pf_results-gdatu = sy-datum. " todo add to is_pricefeedresult
-    "ls_prvd_pf_results-kurst = is_pricefeedresult- todo add exchanges
+    ls_prvd_pf_results-kurst = is_pricefeedresult-exchange_currency.
     ls_prvd_pf_results-networkid = is_pricefeedresult-networkid.
     ls_prvd_pf_results-smartcontractaddress = is_pricefeedresult-smartcontractaddress.
     ls_prvd_pf_results-tcurr = is_pricefeedresult-to_currency.
@@ -517,6 +517,11 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     ls_prvd_pf_results-txn_processed_at = is_pricefeedresult-txn_processed_at.
     ls_prvd_pf_results-user_responsible = is_pricefeedresult-user_responsible.
     ls_prvd_pf_results-walletid = is_pricefeedresult-walletid.
+    ls_prvd_pf_results-answeredinround = is_pricefeedresult-answeredinround.
+    ls_prvd_pf_results-roundid = is_pricefeedresult-roundid.
+    ls_prvd_pf_results-rawanswer = is_pricefeedresult-rawanswer.
+    ls_prvd_pf_results-formatted_amount = is_pricefeedresult-formatted_amount.
+
 
     APPEND ls_prvd_pf_results TO lt_prvd_pf_results.
     es_pf_table = ls_prvd_pf_results.

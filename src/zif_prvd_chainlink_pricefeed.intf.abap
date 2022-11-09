@@ -2,8 +2,9 @@ INTERFACE zif_prvd_chainlink_pricefeed
   PUBLIC .
 
   TYPES: BEGIN OF ty_chainlink_pricefeed_result,
-           from_currency        TYPE WAERS_CURC,
-           to_currency          TYPE WAERS_CURC,
+           from_currency        TYPE waers_curc,
+           to_currency          TYPE waers_curc,
+           exchange_currency    TYPE waers_curc,
            formatted_amount     TYPE ukurs,
            smartcontractaddress TYPE zproubc_smartcontract_addr,
            prvdstackcontractid  TYPE zcasesensitive_str,
@@ -12,6 +13,11 @@ INTERFACE zif_prvd_chainlink_pricefeed
            txn_processed_at     TYPE timestampl,
            user_responsible     TYPE sy-uname,
            walletid             TYPE zproubc_smartcontract_addr,
+           answeredinround      TYPE char25,
+           roundid              TYPE char25,
+           rawanswer            TYPE char80,
+           startedat            TYPE char80,
+           updatedat            TYPE char80,
          END OF ty_chainlink_pricefeed_result.
   TYPES: tty_pricefeed_results TYPE STANDARD TABLE OF ty_chainlink_pricefeed_result.
 
@@ -23,6 +29,18 @@ INTERFACE zif_prvd_chainlink_pricefeed
            answeredinround TYPE int8, "uint80
          END OF ty_latestrounddata_result.
 
+  TYPES: BEGIN OF ty_baselined_result,
+           networkid            TYPE zprvd_nchain_networkid,
+           smartcontractaddress TYPE zproubc_smartcontract_addr,
+           from_currency        TYPE waers_curc,
+           to_currency          TYPE waers_curc,
+           exchange_currency    TYPE waers_curc,
+           rawanswer            TYPE char80,
+           formatted_amount     TYPE ukurs,
+           answeredinround      TYPE char25,
+           roundid              TYPE char25,
+         END OF ty_baselined_result.
+
   METHODS:  prvd_authenticate IMPORTING iv_authtype   TYPE char1
                                         iv_prvduser   TYPE string OPTIONAL
                                         iv_prvduserpw TYPE string OPTIONAL,
@@ -33,8 +51,8 @@ INTERFACE zif_prvd_chainlink_pricefeed
                           EXPORTING ev_contentid    TYPE zcasesensitivechar255,
     read_market_rate_file IMPORTING iv_directorylocation TYPE zcasesensitivechar255
                           EXPORTING et_tcurr             TYPE ftdf_tab_tcurr,
-    format_to_market_rates IMPORTING it_pf_results type zprvd_pf_results
-                            EXPORTING et_tcurr            type ftdf_tab_tcurr,
+    format_to_market_rates IMPORTING it_pf_results TYPE zprvd_pf_results
+                           EXPORTING et_tcurr      TYPE ftdf_tab_tcurr,
     archive_files IMPORTING iv_directorylocation TYPE zcasesensitivechar255
                             iv_archivelocation   TYPE zcasesensitivechar255,
     update_s4hana_market_rates IMPORTING it_tcurr TYPE ftdf_tab_tcurr,
