@@ -6,11 +6,13 @@
 REPORT zprvd_chainlink_pricefeed.
 
 DATA: lo_prvd_chainlink_pricefeed TYPE REF TO zcl_prvd_chainlink_pricefeed,
-      lt_pricefeed_messages       TYPE TABLE OF bapiret2.
+      lt_pricefeed_messages       TYPE TABLE OF bapiret2,
+      lv_pfids                    TYPE zprvdpricefeed-pairid,
+      lt_pf_pairids_rt            type zproubc_pf_pairid_rt.
 
-"Todo add selection range
-"select-OPTIONS: s_pricefeeds for zprvdpricefeed-
-PARAMETERS: p_tenant TYPE zprvdtenantid,
+SELECT-OPTIONS: s_pfids FOR lv_pfids.
+PARAMETERS: p_netwrk TYPE zprvd_nchain_networkid,
+            p_tenant TYPE zprvdtenantid,
             p_sbjact TYPE zprvdtenantid,
             p_wrkgrp TYPE zprvdtenantid,
             p_zkp    TYPE char1 AS CHECKBOX,
@@ -22,6 +24,7 @@ INITIALIZATION.
   GET PARAMETER ID 'ZPRVDWRKGRPID' FIELD p_wrkgrp.
 
 START-OF-SELECTION.
+  MOVE-CORRESPONDING s_pfids[] to lt_pf_pairids_rt[].
   lo_prvd_chainlink_pricefeed = NEW zcl_prvd_chainlink_pricefeed( ).
   lo_prvd_chainlink_pricefeed->setup( EXPORTING iv_tenant = p_tenant
                                                 iv_subj_acct = p_sbjact
@@ -30,14 +33,15 @@ START-OF-SELECTION.
                                                 iv_do_ipfs = p_ipfs ).
   lo_prvd_chainlink_pricefeed->zif_prvd_chainlink_pricefeed~prvd_authenticate( iv_authtype = 'R'  ).
 
-  lo_prvd_chainlink_pricefeed->zif_prvd_chainlink_pricefeed~call_chainlink_pricefeeds( ).
+  "does the existing ETH/USD price feed from polygon mumbai with hardcoded values
+  "lo_prvd_chainlink_pricefeed->zif_prvd_chainlink_pricefeed~call_chainlink_pricefeeds( ).
 
   LOOP AT lt_pricefeed_messages ASSIGNING FIELD-SYMBOL(<fs_pricefeed_messages>).
   ENDLOOP.
 
   IF p_zkp = 'X'.
     NEW-LINE.
-    WRITE: 'Created Baseline ZKP for the price feed result use'.
+    WRITE: 'Created PRVD Baseline ZKP for the price feed result use'.
     "todo list the ZKPs here
   ENDIF.
 

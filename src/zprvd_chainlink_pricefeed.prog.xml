@@ -24,6 +24,12 @@
     </item>
     <item>
      <ID>S</ID>
+     <KEY>P_NETWRK</KEY>
+     <ENTRY>PRVD Nchain Network ID</ENTRY>
+     <LENGTH>30</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
      <KEY>P_SBJACT</KEY>
      <ENTRY>PRVD Subject Account ID</ENTRY>
      <LENGTH>31</LENGTH>
@@ -44,6 +50,12 @@
      <ID>S</ID>
      <KEY>P_ZKP</KEY>
      <ENTRY>Create Baseline ZKP</ENTRY>
+     <LENGTH>27</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>S_PFIDS</KEY>
+     <ENTRY>Price feed pair IDS</ENTRY>
      <LENGTH>27</LENGTH>
     </item>
    </TPOOL>

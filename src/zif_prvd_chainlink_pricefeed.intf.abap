@@ -49,6 +49,10 @@ INTERFACE zif_prvd_chainlink_pricefeed
                                         iv_prvduser   TYPE string OPTIONAL
                                         iv_prvduserpw TYPE string OPTIONAL,
     call_chainlink_pricefeeds,
+    execute_chainlink_pricefeed IMPORTING iv_selected_pricefeed       TYPE zprvdpricefeed
+                                EXPORTING es_execute_contract_resp    TYPE zif_proubc_nchain=>ty_executecontract_resp
+                                          es_execute_contract_summary TYPE zif_proubc_nchain=>ty_executecontract_summary,
+
     generate_s4_market_rate_file IMPORTING it_pricefeed_results TYPE tty_pricefeed_results
                                  EXPORTING ev_filelocation      TYPE zcasesensitivechar255,
     move_file_to_ipfs     IMPORTING iv_filelocation TYPE zcasesensitivechar255

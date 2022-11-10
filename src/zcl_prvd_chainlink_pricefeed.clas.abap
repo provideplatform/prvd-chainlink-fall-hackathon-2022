@@ -33,11 +33,10 @@ CLASS zcl_prvd_chainlink_pricefeed DEFINITION
       authenticate_temp,
       authenticate_token,
       select_pricefeed_contracts,
-      generate_pricefeed_contract IMPORTING is_selected_pricefeed     TYPE zprvdpricefeed
-                                  EXPORTING es_pricefeed_contract_req TYPE zif_proubc_nchain=>ty_chainlinkpricefeed_req,
       get_chainlink_marketrate_files,
       update_from_marketrate_file,
-      execute_pricefeed_contract EXPORTING es_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result,
+      run_pricefeed_batch IMPORTING iv_networkid type zprvd_nchain_networkid
+                                    it_selected_pfs type zproubc_pf_pairid_rt,
       parse_latestround IMPORTING is_execute_contract_resp TYPE zif_proubc_nchain=>ty_executecontract_resp
                         EXPORTING es_latestround           TYPE zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result,
       map_latestround_to_result IMPORTING is_latestround              TYPE zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result
@@ -95,21 +94,6 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
 
   METHOD select_pricefeed_contracts.
     SELECT * FROM zprvdpricefeed INTO TABLE lt_selected_contracts.
-  ENDMETHOD.
-
-  METHOD generate_pricefeed_contract.
-    DATA: ls_selectedcontract TYPE zif_proubc_nchain=>ty_chainlinkpricefeed_req.
-    me->get_nchain_helper( ).
-    DATA: lv_pricefeedname TYPE string.
-    CONCATENATE is_selected_pricefeed-currency1 '/' is_selected_pricefeed-currency2 INTO lv_pricefeedname.
-    me->lo_prvd_nchain_helper->smartcontract_factory(  EXPORTING iv_smartcontractaddress = is_selected_pricefeed-zprvdsmartcontractaddr
-                                    iv_name                 = lv_pricefeedname
-                                    iv_contract             = '' "this is more complex
-                                    iv_walletaddress        = '' "from the wallet we created earlier
-                                    iv_nchain_networkid     = is_selected_pricefeed-zprvdnchainnetworkid "goerli testnet nchain id, check if this always same
-                                    iv_contracttype         = 'price-feed'
-                          IMPORTING es_selectedcontract = ls_selectedcontract ).
-    es_pricefeed_contract_req = ls_selectedcontract.
   ENDMETHOD.
 
   METHOD get_chainlink_marketrate_files.
@@ -266,38 +250,27 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     "me.
   ENDMETHOD.
 
-  METHOD execute_pricefeed_contract.
-    DATA: ls_pricefeed_result TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result.
-    es_pricefeed_result = ls_pricefeed_result.
+  method run_pricefeed_batch.
 
-*    me->lo_prvd_nchain_helper->lo_nchain_api->zif_proubc_nchain~createpricefeedcontract(
-*      EXPORTING
-*        is_pricefeedcontract = ls_selectedcontract
-*      IMPORTING
-*        ev_apiresponsestr    = lv_createdcontract_str
-*        ev_apiresponse       = lv_createdcontract_data
-*        ev_httpresponsecode  = lv_createdcontract_responsecd
-**    ).
-*    CASE lv_createdcontract_responsecd.
-*      WHEN 202.
-*      WHEN OTHERS.
-*    ENDCASE.
-**
-**    me->lo_nchain_api->zif_proubc_nchain~executecontract(
-**      EXPORTING
-**        iv_contract_id      = '0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e'
-**        is_execcontractreq  = ls_executecontract
-**      IMPORTING
-**        ev_apiresponsestr   = lv_executecontract_str
-**        ev_apiresponse      =  lv_executecontract_data
-**        ev_httpresponsecode =  lv_executecontract_responsecd
-**    ).
-*    CASE lv_executecontract_responsecd.
-*        WHEN 202.
-*        WHEN OTHERS.
-*    ENDCASE.
+    data: lt_prvdpricefeed type STANDARD TABLE OF zprvdpricefeed.
 
+    select * from zprvdpricefeed into table lt_prvdpricefeed
+        where zprvdnchainnetworkid = iv_networkid
+        and pairid in it_selected_pfs.
 
+    if sy-subrc ne 0. "none of the selected pricefeeds found
+    endif.
+
+    loop at lt_prvdpricefeed ASSIGNING FIELD-SYMBOL(<fs_prvdpricefeed>).
+        me->zif_prvd_chainlink_pricefeed~execute_chainlink_pricefeed(
+          EXPORTING
+            iv_selected_pricefeed       = <fs_prvdpricefeed>
+*          IMPORTING
+*            es_execute_contract_resp    =
+*            es_execute_contract_summary =
+        ).
+        "execute_chainlink_pricefeed
+    ENDLOOP.
 
   ENDMETHOD.
 
@@ -359,7 +332,6 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           DATA: lv_roundid_raw TYPE REF TO data.
           lv_roundid_raw = <fs_roundid_raw>.
           ASSIGN lv_roundid_raw->* TO FIELD-SYMBOL(<fs_roundid_raw2>).
-          "<fs_roundid> = <fs_roundid_raw>.
           ls_latestround-roundid = <fs_roundid_raw2>.
         WHEN 2.
           GET REFERENCE OF <fs_index> INTO lo_answer.
@@ -571,6 +543,97 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     CLEAR ls_prvd_pf_results.
     MODIFY zprvd_pf_results FROM TABLE lt_prvd_pf_results.
 
+  ENDMETHOD.
+
+  METHOD ZIF_PRVD_CHAINLINK_PRICEFEED~execute_chainlink_pricefeed.
+    DATA: ls_pricefeedwallet            TYPE zif_proubc_nchain=>ty_createhdwalletrequest,
+          lv_getwallet_str              TYPE string,
+          lv_getwallet_data             TYPE REF TO data,
+          lv_getwallet_responsecode     TYPE i,
+          ls_wallet_created             TYPE zif_proubc_nchain=>ty_hdwalletcreate_resp,
+          ls_selectedcontract           TYPE zif_proubc_nchain=>ty_chainlinkpricefeed_req,
+          lv_createdcontract_str        TYPE string,
+          lv_createdcontract_data       TYPE REF TO data,
+          lv_createdcontract_responsecd TYPE i,
+          ls_executecontract            TYPE zif_proubc_nchain=>ty_executecontractrequest,
+          lv_executecontract_str        TYPE string,
+          lv_executecontract_xstr       TYPE xstring,
+          lv_executecontract_data       TYPE REF TO data,
+          lv_executecontract_responsecd TYPE i,
+          lv_network_contract_id        TYPE zproubc_smartcontract_addr,
+          lv_prvd_stack_contract_id     TYPE zcasesensitive_str,
+          ls_execute_contract_resp      TYPE zif_proubc_nchain=>ty_executecontract_resp,
+          ls_execute_contract_summary   type zif_proubc_nchain=>ty_executecontract_summary.
+
+    ls_pricefeedwallet-purpose = 44.
+    lo_prvd_nchain_helper->get_nchain_client( )->zif_proubc_nchain~createhdwallet( EXPORTING is_walletrequest = ls_pricefeedwallet
+                                                         IMPORTING ev_apiresponsestr   = lv_getwallet_str
+                                                                   ev_apiresponse       = lv_getwallet_data
+                                                                   ev_httpresponsecode = lv_getwallet_responsecode ).
+    CASE lv_getwallet_responsecode.
+      WHEN 201.
+        /ui2/cl_json=>deserialize( EXPORTING json = lv_getwallet_str CHANGING data = ls_wallet_created ).
+      WHEN OTHERS. "add error handling
+    ENDCASE.
+    CONCATENATE iv_selected_pricefeed-from_currency iv_selected_pricefeed-to_currency into data(lv_pfname) SEPARATED BY '/'.
+    lo_prvd_nchain_helper->smartcontract_factory(  EXPORTING iv_smartcontractaddress = iv_selected_pricefeed-zprvdsmartcontractaddr
+                                          iv_name                 = lv_pfname
+                                          iv_walletaddress        = ls_wallet_created-id  "from the wallet we created earlier
+                                          iv_nchain_networkid     = iv_selected_pricefeed-zprvdnchainnetworkid " polygon mumbai testnet nchain id
+                                          iv_contracttype         = 'price-feed'
+                                IMPORTING es_selectedcontract = ls_selectedcontract ).
+    lo_prvd_nchain_helper->get_nchain_client( )->zif_proubc_nchain~createpricefeedcontract(
+      EXPORTING
+        iv_smartcontractaddr = iv_selected_pricefeed-zprvdsmartcontractaddr
+        is_pricefeedcontract = ls_selectedcontract
+      IMPORTING
+        ev_apiresponsestr    = lv_createdcontract_str
+        ev_apiresponse       = lv_createdcontract_data
+        ev_httpresponsecode  = lv_createdcontract_responsecd
+    ).
+    CASE lv_createdcontract_responsecd.
+      WHEN 201.
+
+        FIELD-SYMBOLS: <fs_prvd_stack_contractid>     TYPE any,
+                       <fs_prvd_stack_contractid_str> TYPE string.
+
+        IF lv_createdcontract_data IS NOT INITIAL.
+          ASSIGN lv_createdcontract_data->* TO FIELD-SYMBOL(<ls_contractdata>).
+          ASSIGN COMPONENT 'ID' OF STRUCTURE <ls_contractdata> TO <fs_prvd_stack_contractid>.
+          ASSIGN <fs_prvd_stack_contractid>->* TO <fs_prvd_stack_contractid_str>.
+          lv_prvd_stack_contract_id = <fs_prvd_stack_contractid_str>.
+        ENDIF.
+        ls_executecontract-method = 'latestRoundData'.
+        ls_executecontract-value = 0.
+        ls_executecontract-wallet_id = ls_wallet_created-id.
+      WHEN 404. "contract not found - might not be deployed
+      WHEN OTHERS.
+    ENDCASE.
+   lo_prvd_nchain_helper->get_nchain_client( )->zif_proubc_nchain~executecontract(
+      EXPORTING
+        iv_contract_id      = lv_prvd_stack_contract_id
+        is_execcontractreq  = ls_executecontract
+      IMPORTING
+        ev_apiresponsestr   = lv_executecontract_str
+        ev_apiresponsexstr  = lv_executecontract_xstr
+        ev_apiresponse      =  lv_executecontract_data
+        ev_httpresponsecode =  lv_executecontract_responsecd
+    ).
+    CASE lv_executecontract_responsecd.
+      WHEN 200.
+        ls_execute_contract_summary-nchain_network_id = iv_selected_pricefeed-zprvdnchainnetworkid.
+        ls_execute_contract_summary-prvd_stack_contractid = lv_prvd_stack_contract_id.
+        ls_execute_contract_summary-smartcontract_addr = iv_selected_pricefeed-zprvdsmartcontractaddr.
+        ls_execute_contract_summary-walletid = ls_wallet_created-id.
+        "TODO - losing response values when deserializing. Round IDs surpass p8 type
+        /ui2/cl_json=>deserialize( EXPORTING jsonx = lv_executecontract_xstr CHANGING data = ls_execute_contract_resp  ).
+        ASSIGN lv_executecontract_data->* TO FIELD-SYMBOL(<ls_contractoutputs>).
+        ASSIGN COMPONENT 'RESPONSE' OF STRUCTURE <ls_contractoutputs> TO FIELD-SYMBOL(<fs_executecontract_resp>).
+        es_execute_contract_resp = ls_execute_contract_resp.
+        es_execute_contract_summary = ls_execute_contract_summary.
+
+      WHEN OTHERS.
+    ENDCASE.
   ENDMETHOD.
 
 ENDCLASS.
