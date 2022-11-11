@@ -35,6 +35,11 @@ START-OF-SELECTION.
 
   "does the existing ETH/USD price feed from polygon mumbai with hardcoded values
   "lo_prvd_chainlink_pricefeed->zif_prvd_chainlink_pricefeed~call_chainlink_pricefeeds( ).
+  lo_prvd_chainlink_pricefeed->run_pricefeed_batch(
+    EXPORTING
+      iv_networkid    = p_netwrk
+      it_selected_pfs = lt_pf_pairids_rt
+  ).
 
   LOOP AT lt_pricefeed_messages ASSIGNING FIELD-SYMBOL(<fs_pricefeed_messages>).
   ENDLOOP.
