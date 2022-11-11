@@ -260,10 +260,16 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
         WHERE zprvdnchainnetworkid = iv_networkid
         AND pairid IN it_selected_pfs.
 
+
+
     IF sy-subrc NE 0. "none of the selected pricefeeds found
     ENDIF.
 
     LOOP AT lt_prvdpricefeed ASSIGNING FIELD-SYMBOL(<fs_prvdpricefeed>).
+      CLEAR: lv_from_currency, lv_to_currency.
+      lv_from_currency = <fs_prvdpricefeed>-from_currency.
+      lv_to_currency = <fs_prvdpricefeed>-to_currency.
+
       me->zif_prvd_chainlink_pricefeed~execute_chainlink_pricefeed(
         EXPORTING
           iv_selected_pricefeed       = <fs_prvdpricefeed>
@@ -272,11 +278,11 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
             es_execute_contract_summary = ls_execute_contract_summary
       ).
       me->parse_latestround(
-   EXPORTING
-       is_execute_contract_resp = ls_execute_contract_resp
-     IMPORTING
-       es_latestround = ls_latestround
-   ).
+       EXPORTING
+           is_execute_contract_resp = ls_execute_contract_resp
+         IMPORTING
+           es_latestround = ls_latestround
+      ).
       me->map_latestround_to_result(
         EXPORTING
           is_latestround     = ls_latestround
