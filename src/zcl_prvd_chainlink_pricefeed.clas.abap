@@ -309,8 +309,29 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
         ).
       ENDIF.
       IF lv_do_ipfs IS NOT INITIAL.
-        "me->zif_prvd_chainlink_pricefeed~generate_s4_market_rate_file(  ) todo change params
-        "me->zif_prvd_chainlink_pricefeed~move_file_to_ipfs(  )
+        DATA: lv_basepath    TYPE zcasesensitivechar255,
+              lv_filename    TYPE zcasesensitivechar255,
+              lv_filenamestr TYPE string,
+              lv_movedfile   TYPE string.
+
+
+
+        me->zif_prvd_chainlink_pricefeed~generate_s4_market_rate_file(
+          EXPORTING
+            it_pricefeed_results = ls_pricefeed_result
+            iv_basepath          = lv_basepath
+          IMPORTING
+            ev_filelocation      = lv_filename
+        ).
+        lv_filenamestr = lv_filename.
+        CONCATENATE lv_basepath lv_filename INTO lv_movedfile SEPARATED BY '/'.
+        me->zif_prvd_chainlink_pricefeed~move_file_to_ipfs(
+          EXPORTING
+            iv_filelocation = lv_movedfile
+            iv_ipfsfilename = lv_filenamestr
+*          IMPORTING
+*            ev_contentid    =
+        ).
       ENDIF.
 
     ENDLOOP.
@@ -461,7 +482,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD zif_prvd_chainlink_pricefeed~emit_baseline_zkp_msg.
-    DATA: ls_protocol_msg_req  TYPE zif_proubc_baseline=>protocolmessage_req,
+    DATA: lv_setup_success     TYPE boolean,
+          ls_protocol_msg_req  TYPE zif_proubc_baseline=>protocolmessage_req,
           ls_protocol_msg_resp TYPE zif_proubc_baseline=>protocolmessage_resp,
           lv_status            TYPE i,
           lv_apiresponse       TYPE REF TO data,
@@ -474,6 +496,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           lv_daily_pf_key      TYPE string,
           ls_baselineproto_msg TYPE zif_prvd_chainlink_pricefeed=>ty_baselined_result.
 
+    lo_prvd_api_helper->setup_protocol_msg( IMPORTING setup_success = lv_setup_success ).
+
     LOOP AT is_pricefeed_result ASSIGNING FIELD-SYMBOL(<fs_pricefeed_result>).
       ls_baselineproto_msg-from_currency = <fs_pricefeed_result>-fcurr.
       ls_baselineproto_msg-to_currency = <fs_pricefeed_result>-tcurr.
@@ -484,7 +508,12 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
       ls_baselineproto_msg-roundid = <fs_pricefeed_result>-roundid.
       ls_baselineproto_msg-smartcontractaddress = <fs_pricefeed_result>-smartcontractaddress.
       ls_baselineproto_msg-networkid = <fs_pricefeed_result>-networkid.
-
+      CONCATENATE <fs_pricefeed_result>-kurst
+                  <fs_pricefeed_result>-fcurr
+                  <fs_pricefeed_result>-tcurr
+                 <fs_pricefeed_result>-gdatu
+      INTO lv_daily_pf_key SEPARATED BY '|'.
+      ls_baselineproto_msg-dailypfkey = lv_daily_pf_key.
       GET REFERENCE OF ls_baselineproto_msg INTO ls_pf_result_data.
 
       "request to /api/v1/protocol_messages
@@ -492,12 +521,9 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
       ls_protocol_msg_req-payload_mimetype = 'json'.
       ls_protocol_msg_req-type = 'PRVDChainlinkPriceFeedSync'.
 
-      CONCATENATE <fs_pricefeed_result>-kurst
-                  <fs_pricefeed_result>-fcurr
-                  <fs_pricefeed_result>-tcurr
-                 <fs_pricefeed_result>-gdatu
-      INTO lv_daily_pf_key SEPARATED BY '|'.
+
       ls_protocol_msg_req-id = lv_daily_pf_key.
+
 
       lo_prvd_api_helper->send_protocol_msg( EXPORTING body = ls_protocol_msg_req IMPORTING statuscode = lv_status
                                                                                       apiresponse = lv_apiresponse
@@ -558,6 +584,20 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD  zif_prvd_chainlink_pricefeed~move_file_to_ipfs.
+    DATA: lv_filecontent_xstr TYPE xstring.
+    zcl_proubc_file_helper=>open_file_generic(
+      EXPORTING
+        iv_file_location = iv_filelocation
+      IMPORTING
+        ev_filecontent_x = lv_filecontent_xstr
+*       ev_filecontent   =
+    ).
+    zcl_proubc_file_helper=>transfer_file_to_ipfs(
+      EXPORTING
+        iv_filecontent_x =  lv_filecontent_xstr
+*     IMPORTING
+*       ev_contentid     =
+    ).
   ENDMETHOD.
 
   METHOD save_result.

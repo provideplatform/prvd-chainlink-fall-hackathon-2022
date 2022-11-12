@@ -5,7 +5,7 @@ INTERFACE zif_prvd_chainlink_pricefeed
            from_currency        TYPE waers_curc,
            to_currency          TYPE waers_curc,
            exchange_type        TYPE kurst_curr,
-           formatted_amount     TYPE UKURS_CURR,
+           formatted_amount     TYPE ukurs_curr,
            smartcontractaddress TYPE zproubc_smartcontract_addr,
            prvdstackcontractid  TYPE zcasesensitive_str,
            networkid            TYPE zprvd_nchain_networkid,
@@ -34,16 +34,17 @@ INTERFACE zif_prvd_chainlink_pricefeed
            smartcontractaddress TYPE zproubc_smartcontract_addr,
            from_currency        TYPE waers_curc,
            to_currency          TYPE waers_curc,
-           exchange_type    TYPE kurst_curr,
+           exchange_type        TYPE kurst_curr,
            rawanswer            TYPE char80,
            formatted_amount     TYPE ukurs,
            answeredinround      TYPE char25,
            roundid              TYPE char25,
+           dailypfkey           TYPE string,
          END OF ty_baselined_result.
 
-  types: tty_pf_result type standard table of zprvd_pf_results,
-         tty_tcurr type STANDARD TABLE OF tcurr,
-         tty_bpiobj type STANDARD TABLE OF zbpiobj.
+  TYPES: tty_pf_result TYPE STANDARD TABLE OF zprvd_pf_results,
+         tty_tcurr     TYPE STANDARD TABLE OF tcurr,
+         tty_bpiobj    TYPE STANDARD TABLE OF zbpiobj.
 
   METHODS:  prvd_authenticate IMPORTING iv_authtype   TYPE char1
                                         iv_prvduser   TYPE string OPTIONAL
@@ -53,9 +54,11 @@ INTERFACE zif_prvd_chainlink_pricefeed
                                 EXPORTING es_execute_contract_resp    TYPE zif_proubc_nchain=>ty_executecontract_resp
                                           es_execute_contract_summary TYPE zif_proubc_nchain=>ty_executecontract_summary,
 
-    generate_s4_market_rate_file IMPORTING it_pricefeed_results TYPE tty_pricefeed_results
+    generate_s4_market_rate_file IMPORTING it_pricefeed_results TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result
+                                           iv_basepath          TYPE zcasesensitivechar255
                                  EXPORTING ev_filelocation      TYPE zcasesensitivechar255,
-    move_file_to_ipfs     IMPORTING iv_filelocation TYPE zcasesensitivechar255
+    move_file_to_ipfs     IMPORTING iv_filelocation TYPE string
+                                    iv_ipfsfilename type string
                           EXPORTING ev_contentid    TYPE zcasesensitivechar255,
     read_market_rate_file IMPORTING iv_directorylocation TYPE zcasesensitivechar255
                           EXPORTING et_tcurr             TYPE ftdf_tab_tcurr,
