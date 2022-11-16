@@ -61,7 +61,7 @@ INTERFACE zif_prvd_chainlink_pricefeed
                                            ev_filename          type string,
     move_file_to_ipfs     IMPORTING iv_filelocation TYPE string
                                     iv_ipfsfilename type string
-                          EXPORTING ev_contentid    TYPE zcasesensitivechar255,
+                          EXPORTING ev_contentid    TYPE string,
     read_market_rate_file IMPORTING iv_directorylocation TYPE zcasesensitivechar255
                           EXPORTING et_tcurr             TYPE ftdf_tab_tcurr,
     format_to_market_rates IMPORTING it_pf_results TYPE tty_pf_result

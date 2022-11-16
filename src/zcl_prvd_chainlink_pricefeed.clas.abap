@@ -18,10 +18,16 @@ CLASS zcl_prvd_chainlink_pricefeed DEFINITION
       format_eth_price IMPORTING !iv_chainlink_eth_price TYPE int8
                                  !iv_to_currency         TYPE waers_curc
                        EXPORTING !ev_sap_eth_price       TYPE ukurs_curr,
+      format_btc_price IMPORTING !iv_chainlink_btc_price TYPE int8
+                                 !iv_to_currency         TYPE waers_curc
+                       EXPORTING !ev_sap_btc_price       TYPE ukurs_curr,
       save_result     IMPORTING !is_pricefeedresult TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result
                       EXPORTING !et_pf_table        TYPE zif_prvd_chainlink_pricefeed=>tty_pf_result,
       run_pricefeed_batch IMPORTING iv_networkid    TYPE zprvd_nchain_networkid
-                                    it_selected_pfs TYPE zproubc_pf_pairid_rt.
+                                    it_selected_pfs TYPE zproubc_pf_pairid_rt
+                          EXPORTING et_zkps         type zif_prvd_chainlink_pricefeed=>tty_bpiobj
+                                    ev_al11_file    TYPE string
+                                    ev_ipfs_cid     TYPE string.
 
   PROTECTED SECTION.
     DATA: lo_prvd_api_helper    TYPE REF TO zcl_proubc_api_helper,
@@ -333,6 +339,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           IMPORTING
             es_bpiobj           = lt_bpi_obj
         ).
+        APPEND LINES OF LT_BPI_OBJ TO ET_ZKPS.
       ENDIF.
       APPEND ls_pricefeed_result TO lt_pricefeed_results.
     ENDLOOP.
@@ -342,7 +349,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
             lv_filelocation TYPE string,
             lv_filename     TYPE string,
             lv_filenamestr  TYPE string,
-            lv_movedfile    TYPE string.
+            lv_movedfile    TYPE string,
+            lv_ipfs_cid     TYPE string.
 
       lv_basepath = '/usr/sap/trans/data/'.
 
@@ -360,9 +368,12 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
         EXPORTING
           iv_filelocation = lv_filelocation
           iv_ipfsfilename = lv_filename
-*          IMPORTING
-*            ev_contentid    =
+          IMPORTING
+            ev_contentid    = lv_ipfs_cid
       ).
+
+      ev_al11_file = lv_filelocation.
+      ev_ipfs_cid = lv_ipfs_cid.
     ENDIF.
 
   ENDMETHOD.
@@ -417,6 +428,9 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           lo_answeredinround TYPE REF TO data.
 
     ASSIGN COMPONENT 'RESPONSE' OF STRUCTURE is_execute_contract_resp  TO <fs_responses>.
+    IF sy-subrc NE 0.
+      "problem with Nchain response
+    ENDIF.
     ls_response_tab = <fs_responses>.
     ASSIGN ls_response_tab->* TO <fs_t_responses>.
     LOOP AT <fs_t_responses> ASSIGNING FIELD-SYMBOL(<fs_index>).
@@ -483,7 +497,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     ls_result-from_currency = iv_from_currency.
     ls_result-to_currency = iv_to_currency.
 
-    ls_result-exchange_type = '1001'.
+    ls_result-exchange_type = 'M'.
 
     "add some other Nchain and SAP related info
     ls_result-user_responsible = sy-uname.
@@ -510,6 +524,24 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     lv_eth_formatted_price = lv_eth_floated_price.
 
     ev_sap_eth_price = lv_eth_formatted_price.
+  ENDMETHOD.
+
+  METHOD format_btc_price.
+    DATA: lv_btc_formatted_price TYPE p DECIMALS 5, "9 character decimal type + up to 5 decimal places
+          lv_btc_floated_price   TYPE float,
+          lv_float_factor        TYPE float.
+
+    CASE iv_to_currency.
+      WHEN 'USD'.
+        lv_float_factor = '0.00000001'.
+      WHEN OTHERS.
+        lv_float_factor = '0.00000001'.
+    ENDCASE.
+
+    lv_btc_floated_price = iv_chainlink_btc_price * lv_float_factor.
+    lv_btc_formatted_price = lv_btc_floated_price.
+
+    ev_sap_btc_price = lv_btc_formatted_price.
   ENDMETHOD.
 
   METHOD zif_prvd_chainlink_pricefeed~emit_baseline_zkp_msg.
@@ -615,23 +647,28 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD  zif_prvd_chainlink_pricefeed~move_file_to_ipfs.
-    DATA: lv_filecontent_xstr TYPE xstring.
+    DATA: lv_filecontent_xstr TYPE xstring,
+          lv_filecontent_str  TYPE string,
+          lv_xcontentlength   TYPE i.
     zcl_proubc_file_helper=>open_file_generic(
       EXPORTING
         iv_file_location = iv_filelocation
       IMPORTING
         ev_filecontent_x = lv_filecontent_xstr
-*       ev_filecontent   =
+        ev_filecontent   = lv_filecontent_str
+        ev_length = lv_xcontentlength
     ).
     zcl_proubc_file_helper=>transfer_file_to_ipfs(
       EXPORTING
         iv_filecontent_x =  lv_filecontent_xstr
+        iv_filecontent = lv_filecontent_str
         iv_filename = iv_ipfsfilename
         iv_filetype = 'json'
         iv_ipfsprojid    = lv_ipfsprojid
         iv_ipfsapikey = lv_ipfsapikey
-*     IMPORTING
-*       ev_contentid     =
+        iv_xcontentlength = lv_xcontentlength
+     IMPORTING
+       ev_contentid     = ev_contentid
     ).
   ENDMETHOD.
 
