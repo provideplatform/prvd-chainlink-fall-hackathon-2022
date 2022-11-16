@@ -24,6 +24,18 @@
     </item>
     <item>
      <ID>S</ID>
+     <KEY>P_IPFSK</KEY>
+     <ENTRY>IPFS API key</ENTRY>
+     <LENGTH>20</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_IPFSP</KEY>
+     <ENTRY>IPFS Project ID</ENTRY>
+     <LENGTH>23</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
      <KEY>P_NETWRK</KEY>
      <ENTRY>PRVD Nchain Network ID</ENTRY>
      <LENGTH>30</LENGTH>

@@ -19,7 +19,7 @@ INTERFACE zif_prvd_chainlink_pricefeed
            startedat            TYPE char80,
            updatedat            TYPE char80,
          END OF ty_chainlink_pricefeed_result.
-  TYPES: tty_pricefeed_results TYPE STANDARD TABLE OF ty_chainlink_pricefeed_result.
+  TYPES: tty_chainlink_pricefeed_result TYPE STANDARD TABLE OF ty_chainlink_pricefeed_result.
 
   TYPES: BEGIN OF ty_latestrounddata_result,
            roundid         TYPE int8, "uint80
@@ -52,11 +52,13 @@ INTERFACE zif_prvd_chainlink_pricefeed
     call_chainlink_pricefeeds,
     execute_chainlink_pricefeed IMPORTING iv_selected_pricefeed       TYPE zprvdpricefeed
                                 EXPORTING es_execute_contract_resp    TYPE zif_proubc_nchain=>ty_executecontract_resp
-                                          es_execute_contract_summary TYPE zif_proubc_nchain=>ty_executecontract_summary,
+                                          es_execute_contract_summary TYPE zif_proubc_nchain=>ty_executecontract_summary
+                                          ev_httpresponsecode type i,
 
-    generate_s4_market_rate_file IMPORTING it_pricefeed_results TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result
+    generate_s4_market_rate_file IMPORTING it_pricefeed_results TYPE tty_pf_result
                                            iv_basepath          TYPE zcasesensitivechar255
-                                 EXPORTING ev_filelocation      TYPE zcasesensitivechar255,
+                                 EXPORTING ev_filelocation      TYPE string
+                                           ev_filename          type string,
     move_file_to_ipfs     IMPORTING iv_filelocation TYPE string
                                     iv_ipfsfilename type string
                           EXPORTING ev_contentid    TYPE zcasesensitivechar255,

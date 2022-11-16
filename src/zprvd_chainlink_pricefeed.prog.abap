@@ -16,7 +16,9 @@ PARAMETERS: p_netwrk TYPE zprvd_nchain_networkid,
             p_sbjact TYPE zprvdtenantid,
             p_wrkgrp TYPE zprvdtenantid,
             p_zkp    TYPE char1 AS CHECKBOX,
-            p_ipfs   TYPE char1 AS CHECKBOX.
+            p_ipfs   TYPE char1 AS CHECKBOX,
+            p_ipfsp  type zcasesensitive_str,
+            p_ipfsk  type zcasesensitive_str.
 
 INITIALIZATION.
   GET PARAMETER ID 'ZPRVDTENANT' FIELD p_tenant.
@@ -30,7 +32,9 @@ START-OF-SELECTION.
                                                 iv_subj_acct = p_sbjact
                                                 iv_workgroup_id = p_wrkgrp
                                                 iv_do_baseline = p_zkp
-                                                iv_do_ipfs = p_ipfs ).
+                                                iv_do_ipfs = p_ipfs
+                                                iv_ipfsp = p_ipfsp
+                                                iv_ipfsk = p_ipfsk ).
   lo_prvd_chainlink_pricefeed->zif_prvd_chainlink_pricefeed~prvd_authenticate( iv_authtype = 'R'  ).
 
   "does the existing ETH/USD price feed from polygon mumbai with hardcoded values

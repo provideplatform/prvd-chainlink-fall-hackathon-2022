@@ -7,6 +7,14 @@
     <MASTERLANG>E</MASTERLANG>
     <STEXT>PRVD Chainlink Price Feeds Messages</STEXT>
    </T100A>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCL_PRVDCHAINLINKMSG</ARBGB>
+     <MSGNR>000</MSGNR>
+     <TEXT>Error retrieving &amp;1 price feed result Nchain HTTP code &amp;2</TEXT>
+    </T100>
+   </T100>
   </asx:values>
  </asx:abap>
 </abapGit>
