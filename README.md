@@ -121,8 +121,16 @@ Select your desired price pairs
 (Optional) Selecting "Share to IPFS" will generate a file representing the updated price feed information that will then be uploaded to IPFS. Use the IPFS project id and API as defined earlier
 
 ## Reviewing the results
+The program output will look like the following
+![image](./hackathonprogramoutputs.PNG)
 A new entries shall be created in the table ZPRVD_PF_RESULT
+![image](./pf_table_result.PNG)
 The standard SAP table TCURR shall be updated with the new currency rates
+![image](./tcurr_updated.PNG)
 Check the console in Shuttle's workflow designer and the ZBPIOBJ table for the ZKP
-Check IPFS for the expected file under the given content ID. Same file should also be present in AL11 as indicated
+![image](./shuttle-pop.PNG)
+![image](./zbpiobj.PNG)
+Check IPFS for the expected file under the given content ID. Same file should also be present in AL11 as indicated.
+![image](./proubcipfs.PNG)
+![image](./al11.PNG)
 
