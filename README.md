@@ -56,17 +56,17 @@ dailypfkey
 all with type string
 
 See sample definition pictured below
-![image](/proofpricedefinition2.png)
+![image](./proofpricedefinition2.png)
 
 Note how the manual shuttle definition corresponds to the ABAP data type later used to emit the PRVD zk Proof
 (Left: ABAP code to send ZK proof, Center: definition of the ABAP data type for the proof, Right: Shuttle domain model definition)
-![image](/proofpricedefinition.png)
+![image](./proofpricedefinition.png)
 
 Complete onboarding in Shuttle
 Define the Price Feed Synchronization Workflow as follows
 Use the PRVDChainlinkPriceFeedSync domain model. Mark yes to requires finality. Deploy the workflow.
-![image](/proofofprice-workflow-step.png)
-![image](/proofofprice-workflow-defined.png)
+![image](./proofofprice-workflow-step.png)
+![image](./proofofprice-workflow-defined.png)
 
 ### Configure digital assets as currencies in S/4 HANA
 Check out  https://erproof.com/fi/free-training/currencies-in-sap/ for general information on currency configuration in SAP
@@ -85,7 +85,7 @@ Currency 2 is your "to" currency (e.g. USD)
 Add a description as necessary
 Pictured below is a sample entry in SE16 for ZPRVDPRICEFEED
 
-![image](/pricefeed-table-entry.png)
+![image](./pricefeed-table-entry.png)
 
 For the ETH/USD price feed on Polygon Mumbai Testnet use the following configuration entries
 PRVD Nchain Network ID for Polygon Mumbai Testnet: 4251b6fd-c98d-4017-87a3-d691a77a52a7
@@ -104,7 +104,7 @@ All price feed smart contracts used here have the same ABI defined - only need t
 Register the ABI file entries to ZPRVDABIREGISTRY. Create an entry in ZPRVDABIREGISTRY for each PRVD Network ID + Smart contract + ABI file registry.
 
 Pictured below is a sample entry in SAP tcode SE16 for ZPRVDABIREGISTRY
-![image](/price-feed-smartcontract-registry.png)
+![image](./price-feed-smartcontract-registry.png)
 
 ### IPFS setup
 
