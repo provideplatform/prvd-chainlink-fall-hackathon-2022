@@ -56,22 +56,36 @@ dailypfkey
 all with type string
 
 See sample definition pictured below
+![image](/proofpricedefinition2.png)
+
+Note how the manual shuttle definition corresponds to the ABAP data type later used to emit the PRVD zk Proof
+(Left: ABAP code to send ZK proof, Center: definition of the ABAP data type for the proof, Right: Shuttle domain model definition)
+![image](/proofpricedefinition.png)
 
 Complete onboarding in Shuttle
 Define the Price Feed Synchronization Workflow as follows
-Use the PRVDChainlinkPriceFeedSync domain model. Mark yes to requires finality. Deploy the workflow
+Use the PRVDChainlinkPriceFeedSync domain model. Mark yes to requires finality. Deploy the workflow.
+![image](/proofofprice-workflow-step.png)
+![image](/proofofprice-workflow-defined.png)
 
 ### Configure digital assets as currencies in S/4 HANA
-Check https://erproof.com/fi/free-training/currencies-in-sap/ 
+Check out  https://erproof.com/fi/free-training/currencies-in-sap/ for general information on currency configuration in SAP
+
 The last activity of tcode OB08 / maintenance of table TCURR is completed by this program via Chainlink Price Feeds
+
 Check if your expected fiat currencies are here as well (ex: JPY and EUR)
 
 ### Configure data entries the Chainlink price feed smart contracts
+
+You'll need to maintain some data linking Chainlink price feed contracts to given price pairs in SAP. Below are some recommended configuration for using Chainlink Price feeds from Polygon testnet/mainnet.
+
 Configure table entries for your desired currency pairs in ZPRVDPRICEFEED
 Currency 1 is your "from" currency (EUR, BTC, ETH)
 Currency 2 is your "to" currency (e.g. USD)
 Add a description as necessary
-Pictured below is a completed set of entries in SE16 for ZPRVDPRICEFEED
+Pictured below is a sample entry in SE16 for ZPRVDPRICEFEED
+
+![image](/pricefeed-table-entry.png)
 
 For the ETH/USD price feed on Polygon Mumbai Testnet use the following configuration entries
 PRVD Nchain Network ID for Polygon Mumbai Testnet: 4251b6fd-c98d-4017-87a3-d691a77a52a7
@@ -90,6 +104,7 @@ All price feed smart contracts used here have the same ABI defined - only need t
 Register the ABI file entries to ZPRVDABIREGISTRY. Create an entry in ZPRVDABIREGISTRY for each PRVD Network ID + Smart contract + ABI file registry.
 
 Pictured below is a sample entry in SAP tcode SE16 for ZPRVDABIREGISTRY
+![image](/price-feed-smartcontract-registry.png)
 
 ### IPFS setup
 
@@ -101,6 +116,7 @@ Other IPFS gateway providers - including any self-hosted IPFS instances follow t
 Open the program ZPRVD_CHAINLINK_PRICEFEED in transaction code SE38
 Select your desired mainnet/testnet
 Select your desired price pairs
+(Optional) Specify your target PRVD credential (eg. Org+Workgroup+Subject account). Program will automatically resolve the credentials you created earlier if you leav blank
 (Optional) Selecting "Create PRVD Baseline ZKP" will emit a PRVD Baseline zero knowledge proof
 (Optional) Selecting "Share to IPFS" will generate a file representing the updated price feed information that will then be uploaded to IPFS. Use the IPFS project id and API as defined earlier
 
