@@ -4,7 +4,7 @@ Provide submission for Chainlink Fall 2022 Hackathon with proUBC
 ## About
 Decentralized Price Feeds for SAP S/4 HANA - powered by Chainlink, proUBC, PRVD, Shuttle and IPFS
 
-This hackathon entry uses Chainlink price feeds in the SAP S/4 HANA Enterprise Resource Planning (ERP) system. proUBC and SAP consumes Chainlink Price Feeds on public blockchain network such as Polygon via PRVD Nchain API. This repo applies the received price feed results as updates to the TCURR table and a custom reporting table in S/4 HANA. 
+This hackathon entry uses Chainlink price feeds in the SAP S/4 HANA Enterprise Resource Planning (ERP) system - with proUBC acting as the SAP - Web3 connector/SDK written in SAP ABAP. proUBC and SAP consumes Chainlink Price Feeds on public blockchain network such as Polygon via PRVD Nchain API. The received price feed results from Chainlink price feed are processed as updates to the TCURR table (which is used for all foreign currency conversions in SAP) and a custom reporting table in S/4 HANA. 
 
 The introduction of Chainlink Price Feeds (as well as PRVD Baseline and IPFS!) to SAP introduces new opportunities to optimize and automate existing business processes. It also makes Web3 businesss integrations possible by giving SAP the necessary price information on digital assets it previously did not have.
 
