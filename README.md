@@ -10,7 +10,7 @@ The introduction of Chainlink Price Feeds (as well as PRVD Baseline and IPFS!) t
 
 Additionally - the user has the option to propagate PRVD Baseline zk-proofs to coordinate with other business partners to more broadly agree upon foreign exchange rate amongst several external SAP systems or other enterprise environments - without requiring all of them to have real-time connectivity to eachother.
 
-Further - the user can choose to publish the results of the used price feed data to IPFS. The file on IPFS can also be shared amongst business partners.The file on IPFS could also be used as a new kind data source Chainlink Price Feeds could build upon by considering digital assets and currencies in their commercial use in fairly weighted criteria against current asset trading markets.
+Further - the user can choose to publish the results of the used price feed data to IPFS. The file on IPFS can also be shared amongst business partners. The file on IPFS could also be used as a new kind data source Chainlink Price Feeds could build upon by considering digital assets and currencies in their commercial use in fairly weighted criteria against current asset trading markets.
 
 Check out our other entry materials for more info on the use case and a brief how-to.
 
@@ -28,7 +28,7 @@ Alex Dunne (Developer)
 Prior to cloning this repo:
 Clone the proUBC repo via abapGit
 https://github.com/provideplatform/proUBC.git
-(make sure to pull a branch dated after Nov 16 2022 for IPFS support )
+(make sure to pull a branch dated after Nov 16 2022 for IPFS support)
 Follow the the proUBC enablement docs to configure your SAP system for proUBC use:
 https://docs.provide.services/proubc
 
@@ -77,7 +77,7 @@ Check if your expected fiat currencies are here as well (ex: JPY and EUR)
 
 ### Configure data entries the Chainlink price feed smart contracts
 
-You'll need to maintain some data linking Chainlink price feed contracts to given price pairs in SAP. Below are some recommended configuration for using Chainlink Price feeds from Polygon testnet/mainnet.
+You'll need to maintain some data linking Chainlink price feed contracts to given price pairs in SAP. Below are some recommended configurations for using Chainlink Price feeds from Polygon testnet/mainnet.
 
 Configure table entries for your desired currency pairs in ZPRVDPRICEFEED
 Currency 1 is your "from" currency (EUR, BTC, ETH)
@@ -116,7 +116,7 @@ Other IPFS gateway providers - including any self-hosted IPFS instances follow t
 Open the program ZPRVD_CHAINLINK_PRICEFEED in transaction code SE38
 Select your desired mainnet/testnet
 Select your desired price pairs
-(Optional) Specify your target PRVD credential (eg. Org+Workgroup+Subject account). Program will automatically resolve the credentials you created earlier if you leav blank
+(Optional) Specify your target PRVD credential (eg. Org+Workgroup+Subject account). Program will automatically resolve the credentials you created earlier if you leave blank
 (Optional) Selecting "Create PRVD Baseline ZKP" will emit a PRVD Baseline zero knowledge proof
 (Optional) Selecting "Share to IPFS" will generate a file representing the updated price feed information that will then be uploaded to IPFS. Use the IPFS project id and API as defined earlier
 
