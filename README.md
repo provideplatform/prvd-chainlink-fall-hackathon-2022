@@ -15,9 +15,12 @@ Further - the user can choose to publish the results of the used price feed data
 Check out our other entry materials for more info on the use case and a brief how-to.
 
 ## Entry materials
-Video presentation:
-TODO create 3-5 minute video walking through a demo
-Long form tech demo: https://youtu.be/AbZUxBaQG18
+5 minute Video presentation:
+https://youtu.be/fxqMscQVItE
+
+Long form tech demo: 
+https://youtu.be/AbZUxBaQG18
+
 Slide deck:
 https://docs.google.com/presentation/d/1UQpmbuvejSNI5Nu6fg7_4bZy9y8uVfwHQX4tlaK-wj4/edit?usp=sharing
 
