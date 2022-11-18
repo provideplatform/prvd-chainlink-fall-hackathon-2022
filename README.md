@@ -17,6 +17,7 @@ Check out our other entry materials for more info on the use case and a brief ho
 ## Entry materials
 Video presentation:
 TODO create 3-5 minute video walking through a demo
+Long form tech demo: https://youtu.be/AbZUxBaQG18
 Slide deck:
 https://docs.google.com/presentation/d/1UQpmbuvejSNI5Nu6fg7_4bZy9y8uVfwHQX4tlaK-wj4/edit?usp=sharing
 
@@ -41,21 +42,23 @@ Create an org and workgroup - using SAP as system of record as configured during
 Select any domain model
 Manually Define the Price Feed Synchrozition Domain Model with the following properties
 Domain model name: PRVDChainlinkPriceFeedSync
-Fields
-to_currency
-from_currency 
-formatted_amount
-exchange_type 
-rawanswer 
-answeredinround 
-roundid 
-smartcontractaddress
-networkid
-dailypfkey
+
+Fields:
+- to_currency
+- from_currency 
+- formatted_amount
+- exchange_type 
+- rawanswer 
+- answeredinround 
+- roundid 
+- smartcontractaddress
+- networkid
+- dailypfkey
 
 all with type string
 
 See sample definition pictured below
+
 ![image](./proofpricedefinition2.PNG)
 
 Note how the manual shuttle definition corresponds to the ABAP data type later used to emit the PRVD zk Proof
@@ -123,13 +126,18 @@ Select your desired price pairs
 ## Reviewing the results
 The program output will look like the following
 ![image](./hackathonprogramoutputs.PNG)
-A new entries shall be created in the table ZPRVD_PF_RESULT
+
+New entries shall be created in the table ZPRVD_PF_RESULT
 ![image](./pf_table_result.PNG)
+
 The standard SAP table TCURR shall be updated with the new currency rates
+
 ![image](./tcurr_updated.PNG)
+
 Check the console in Shuttle's workflow designer and the ZBPIOBJ table for the ZKP
 ![image](./shuttle-pop.PNG)
 ![image](./zbpiobj.PNG)
+
 Check IPFS for the expected file under the given content ID. Same file should also be present in AL11 as indicated.
 ![image](./proubcipfs.PNG)
 ![image](./al11.PNG)
