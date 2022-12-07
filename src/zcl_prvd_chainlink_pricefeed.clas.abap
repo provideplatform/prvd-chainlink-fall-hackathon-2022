@@ -25,7 +25,7 @@ CLASS zcl_prvd_chainlink_pricefeed DEFINITION
                       EXPORTING !et_pf_table        TYPE zif_prvd_chainlink_pricefeed=>tty_pf_result,
       run_pricefeed_batch IMPORTING iv_networkid    TYPE zprvd_nchain_networkid
                                     it_selected_pfs TYPE zproubc_pf_pairid_rt
-                          EXPORTING et_zkps         type zif_prvd_chainlink_pricefeed=>tty_bpiobj
+                          EXPORTING et_zkps         TYPE zif_prvd_chainlink_pricefeed=>tty_bpiobj
                                     ev_al11_file    TYPE string
                                     ev_ipfs_cid     TYPE string.
 
@@ -88,16 +88,13 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     IF lv_workgroup_id IS INITIAL.
       GET PARAMETER ID 'ZPRVDWRKGRP' FIELD lv_workgroup_id.
     ENDIF.
-    lo_prvd_api_helper = NEW zcl_proubc_api_helper( iv_tenant = lv_tenant iv_subject_acct_id = lv_subj_acct iv_workgroup_id = lv_workgroup_id ).
+    lo_prvd_api_helper = NEW zcl_proubc_api_helper( iv_tenant = lv_tenant 
+                                                    iv_subject_acct_id = lv_subj_acct
+                                                    iv_workgroup_id = lv_workgroup_id ).
     lo_prvd_api_helper->call_ident_api(
       EXPORTING
         iv_tenant      = lv_tenant
         iv_subjacct    = lv_subj_acct
-        "iv_workgrp     = lv_workgroup_id todo add this to core
-*     IMPORTING
-*        ev_authtoken   =
-*        status         =
-*        ev_bpiendpoint =
     ).
     lo_prvd_api_helper->get_nchain_helper( IMPORTING eo_prvd_nchain_helper = lo_prvd_nchain_helper ).
 
@@ -183,7 +180,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           lt_binary_tab          TYPE TABLE OF bapiconten,
           lv_pf_filename         TYPE string.
 
-    lv_pricefeed_json = /ui2/cl_json=>serialize( EXPORTING data = it_pricefeed_results pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
+    lv_pricefeed_json = /ui2/cl_json=>serialize( data = it_pricefeed_results pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
 
     CONCATENATE 'LatestPriceFeed-' sy-datum '-' sy-timlo '.json' INTO lv_pf_filename.
     CONCATENATE iv_basepath lv_pf_filename  INTO lv_pricefeedresultfile.
