@@ -8,21 +8,27 @@ CLASS zcl_prvd_chainlink_pricefeed DEFINITION
     INTERFACES zif_prvd_chainlink_pricefeed .
 
     CLASS-METHODS: factory EXPORTING eo_prvd_chainlink_pricefeed TYPE REF TO zcl_prvd_chainlink_pricefeed.
-    METHODS: setup IMPORTING iv_tenant       TYPE zprvdtenantid OPTIONAL
-                             iv_subj_acct    TYPE zprvdtenantid OPTIONAL
-                             iv_workgroup_id TYPE zprvdtenantid OPTIONAL
-                             iv_do_baseline  TYPE char1 OPTIONAL
-                             iv_do_ipfs      TYPE char1 OPTIONAL
-                             iv_ipfsp        TYPE string OPTIONAL
-                             iv_ipfsk        TYPE string OPTIONAL,
+    METHODS: 
+       "! Initializes the PRVD Chainlink main class with needed params
+       setup IMPORTING iv_tenant       TYPE zprvdtenantid OPTIONAL
+                       iv_subj_acct    TYPE zprvdtenantid OPTIONAL
+                       iv_workgroup_id TYPE zprvdtenantid OPTIONAL
+                       iv_do_baseline  TYPE char1 OPTIONAL
+                       iv_do_ipfs      TYPE char1 OPTIONAL
+                       iv_ipfsp        TYPE string OPTIONAL
+                       iv_ipfsk        TYPE string OPTIONAL,
+      "! Formats the ETH fiat price result from the Chainlink to acceptable SAP format
       format_eth_price IMPORTING !iv_chainlink_eth_price TYPE int8
                                  !iv_to_currency         TYPE waers_curc
                        EXPORTING !ev_sap_eth_price       TYPE ukurs_curr,
+      "! Formats the BTC fiat price result from the Chainlink to acceptable SAP format
       format_btc_price IMPORTING !iv_chainlink_btc_price TYPE int8
                                  !iv_to_currency         TYPE waers_curc
                        EXPORTING !ev_sap_btc_price       TYPE ukurs_curr,
+      "! Saves the Chainlink price feed result to a custom extension table in SAP
       save_result     IMPORTING !is_pricefeedresult TYPE zif_prvd_chainlink_pricefeed=>ty_chainlink_pricefeed_result
                       EXPORTING !et_pf_table        TYPE zif_prvd_chainlink_pricefeed=>tty_pf_result,
+      "! Executes several Chainlink price feed calls in batch, with additional features for PRVD baseline and IPFS
       run_pricefeed_batch IMPORTING iv_networkid    TYPE zprvd_nchain_networkid
                                     it_selected_pfs TYPE zproubc_pf_pairid_rt
                           EXPORTING et_zkps         TYPE zif_prvd_chainlink_pricefeed=>tty_bpiobj
@@ -30,10 +36,10 @@ CLASS zcl_prvd_chainlink_pricefeed DEFINITION
                                     ev_ipfs_cid     TYPE string.
 
   PROTECTED SECTION.
-    DATA: lo_prvd_api_helper    TYPE REF TO zcl_proubc_api_helper,
-          lo_prvd_nchain_helper TYPE REF TO zcl_proubc_nchain_helper,
-          lt_selected_contracts TYPE TABLE OF zprvdpricefeed,
-          lv_tenant             TYPE zprvdtenantid,
+    DATA: mo_prvd_api_helper    TYPE REF TO zcl_proubc_api_helper,
+          mo_prvd_nchain_helper TYPE REF TO zcl_proubc_nchain_helper,
+          mt_selected_contracts TYPE TABLE OF zprvdpricefeed,
+          mv_tenant             TYPE zprvdtenantid,
           lv_subj_acct          TYPE zprvdtenantid,
           lv_workgroup_id       TYPE zprvdtenantid,
           lv_ipfsprojid         TYPE string,
@@ -47,7 +53,6 @@ CLASS zcl_prvd_chainlink_pricefeed DEFINITION
       select_pricefeed_contracts,
       get_chainlink_marketrate_files,
       update_from_marketrate_file,
-
       parse_latestround IMPORTING is_execute_contract_resp TYPE zif_proubc_nchain=>ty_executecontract_resp
                         EXPORTING es_latestround           TYPE zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result,
       map_latestround_to_result IMPORTING is_latestround              TYPE zif_prvd_chainlink_pricefeed=>ty_latestrounddata_result
@@ -69,18 +74,18 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD authenticate_basic.
-    me->get_nchain_helper( ).
-    "lo_prvd_nchain_helper-> "TODO add the basic auth mechanism if absolutely needed
+    get_nchain_helper( ).
+    "mo_prvd_nchain_helper-> "TODO add the basic auth mechanism if absolutely needed
   ENDMETHOD.
 
   METHOD authenticate_temp.
-    me->get_nchain_helper( ).
+    get_nchain_helper( ).
     "TODO add the temp auth mechanism
   ENDMETHOD.
 
   METHOD authenticate_token.
-    IF lv_tenant IS INITIAL.
-      GET PARAMETER ID 'ZPRVDTENANT' FIELD lv_tenant.
+    IF mv_tenant IS INITIAL.
+      GET PARAMETER ID 'ZPRVDTENANT' FIELD mv_tenant.
     ENDIF.
     IF lv_subj_acct IS INITIAL.
       GET PARAMETER ID 'ZPRVDSUBJACCTID' FIELD lv_subj_acct.
@@ -88,20 +93,20 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     IF lv_workgroup_id IS INITIAL.
       GET PARAMETER ID 'ZPRVDWRKGRP' FIELD lv_workgroup_id.
     ENDIF.
-    lo_prvd_api_helper = NEW zcl_proubc_api_helper( iv_tenant = lv_tenant 
+    mo_prvd_api_helper = NEW zcl_proubc_api_helper( iv_tenant = mv_tenant 
                                                     iv_subject_acct_id = lv_subj_acct
                                                     iv_workgroup_id = lv_workgroup_id ).
-    lo_prvd_api_helper->call_ident_api(
-      EXPORTING
-        iv_tenant      = lv_tenant
-        iv_subjacct    = lv_subj_acct
-    ).
-    lo_prvd_api_helper->get_nchain_helper( IMPORTING eo_prvd_nchain_helper = lo_prvd_nchain_helper ).
+    mo_prvd_api_helper->call_ident_api( iv_tenant   = mv_tenant
+                                        iv_subjacct = lv_subj_acct ).
+    mo_prvd_api_helper->get_nchain_helper( IMPORTING eo_prvd_nchain_helper = mo_prvd_nchain_helper ).
 
   ENDMETHOD.
 
   METHOD select_pricefeed_contracts.
-    SELECT * FROM zprvdpricefeed INTO TABLE lt_selected_contracts.
+    SELECT * FROM zprvdpricefeed INTO TABLE mt_selected_contracts.
+    IF sy-subrc <> 0.
+      "No price feeds configured!
+    endif.
   ENDMETHOD.
 
   METHOD get_chainlink_marketrate_files.
@@ -117,29 +122,29 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           lt_pricefeed_results        TYPE zif_prvd_chainlink_pricefeed=>tty_chainlink_pricefeed_result,
           lv_from_currency            TYPE waers_curc,
           lv_to_currency              TYPE waers_curc,
-          lt_bpi_obj                  TYPE zif_prvd_chainlink_pricefeed=>tty_bpiobj.
+          lt_bpi_obj                  TYPE zif_prvd_chainlink_pricefeed=>tty_bpiobj,
+          ls_pf_table_result TYPE zif_prvd_chainlink_pricefeed=>tty_pf_result,
+          lt_tcurr           TYPE ftdf_tab_tcurr.
 
     GET TIME STAMP FIELD lv_sap_chainlink_timestampl.
 
     lv_from_currency = 'ETH'.
     lv_to_currency = 'USD'.
 
-    lo_prvd_nchain_helper->call_chainlink_pricefeed(
+    mo_prvd_nchain_helper->call_chainlink_pricefeed(
       EXPORTING
         iv_inputcurrency  = 'ETH'
         iv_inputamount    = '1'
         iv_outputcurrency = 'USD'
       IMPORTING
         es_contract_resp = ls_execute_contract_resp
-        es_contract_summary = ls_execute_contract_summary
-    ).
-    me->parse_latestround(
+        es_contract_summary = ls_execute_contract_summary ).
+    parse_latestround(
     EXPORTING
         is_execute_contract_resp = ls_execute_contract_resp
       IMPORTING
-        es_latestround = ls_latestround
-    ).
-    me->map_latestround_to_result(
+        es_latestround = ls_latestround ).
+    map_latestround_to_result(
       EXPORTING
         is_latestround     = ls_latestround
         is_execute_contract_resp = ls_execute_contract_resp
@@ -147,22 +152,19 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
         iv_from_currency = lv_from_currency
         iv_to_currency = lv_to_currency
       IMPORTING
-        es_pricefeedresult = ls_pricefeed_result
-    ).
-    DATA: ls_pf_table_result TYPE zif_prvd_chainlink_pricefeed=>tty_pf_result,
-          lt_tcurr           TYPE ftdf_tab_tcurr.
-    me->save_result( EXPORTING is_pricefeedresult = ls_pricefeed_result
+        es_pricefeedresult = ls_pricefeed_result ).
+
+    save_result( EXPORTING is_pricefeedresult = ls_pricefeed_result
                      IMPORTING et_pf_table  = ls_pf_table_result ).
-    me->zif_prvd_chainlink_pricefeed~format_to_market_rates( EXPORTING it_pf_results = ls_pf_table_result
+    zif_prvd_chainlink_pricefeed~format_to_market_rates( EXPORTING it_pf_results = ls_pf_table_result
                                                              IMPORTING et_tcurr = lt_tcurr ).
-    me->zif_prvd_chainlink_pricefeed~update_s4hana_market_rates( EXPORTING it_tcurr = lt_tcurr ).
+    zif_prvd_chainlink_pricefeed~update_s4hana_market_rates( it_tcurr = lt_tcurr ).
     IF lv_do_baseline IS NOT INITIAL.
-      me->zif_prvd_chainlink_pricefeed~emit_baseline_zkp_msg(
+      zif_prvd_chainlink_pricefeed~emit_baseline_zkp_msg(
         EXPORTING
-          is_pricefeed_result =  ls_pf_table_result
+          is_pricefeed_result = ls_pf_table_result
         IMPORTING
-          es_bpiobj           = lt_bpi_obj
-      ).
+          es_bpiobj           = lt_bpi_obj ).
     ENDIF.
     IF lv_do_ipfs IS NOT INITIAL.
       "me->zif_prvd_chainlink_pricefeed~generate_s4_market_rate_file(  ) todo change params
@@ -197,12 +199,12 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     "get an access token in one of 3 ways: basic auth, refresh token linked to the current SAP user, or temporary id
 
     CASE iv_authtype.
-      WHEN 'B'. "basic auth
-        me->authenticate_basic( EXPORTING iv_prvduser = iv_prvduser iv_prvduserpw = iv_prvduserpw  ).
-      WHEN 'R'. "refresh token - most preferred mechanism
-        me->authenticate_token( ).
-      WHEN 'T'. "temporary ident + nchain wallet.
-        me->authenticate_temp(  ).
+      WHEN 'B'.
+        authenticate_basic( EXPORTING iv_prvduser = iv_prvduser iv_prvduserpw = iv_prvduserpw  ).
+      WHEN 'R'.
+        authenticate_token( ).
+      WHEN 'T'.
+        authenticate_temp( ).
     ENDCASE.
   ENDMETHOD.
 
@@ -260,6 +262,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
       TABLES
         mod_tcurr = lt_updated_market_rates.
     IF sy-subrc NE 0.
+      "message error updating TCURR
     ENDIF.
   ENDMETHOD.
 
@@ -284,7 +287,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
         WHERE zprvdnchainnetworkid = iv_networkid
         AND pairid IN it_selected_pfs.
 
-    IF sy-subrc NE 0. "none of the selected pricefeeds found
+    IF sy-subrc NE 0. 
+    "none of the selected pricefeeds found
     ENDIF.
 
     LOOP AT lt_prvdpricefeed ASSIGNING FIELD-SYMBOL(<fs_prvdpricefeed>).
@@ -295,24 +299,22 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
             lv_pricefeed_resp_cd TYPE i.
       CONCATENATE lv_from_currency '/' lv_to_currency INTO lv_pricepair.
 
-      me->zif_prvd_chainlink_pricefeed~execute_chainlink_pricefeed(
+      zif_prvd_chainlink_pricefeed~execute_chainlink_pricefeed(
         EXPORTING
           iv_selected_pricefeed       = <fs_prvdpricefeed>
           IMPORTING
             es_execute_contract_resp    = ls_execute_contract_resp
             es_execute_contract_summary = ls_execute_contract_summary
-            ev_httpresponsecode = lv_pricefeed_resp_cd
-      ).
+            ev_httpresponsecode = lv_pricefeed_resp_cd ).
       IF ls_execute_contract_resp IS INITIAL.
         "message e000 zcl_prvdchainlinkmsg with lv_pricepair
       ENDIF.
-      me->parse_latestround(
+      parse_latestround(
        EXPORTING
            is_execute_contract_resp = ls_execute_contract_resp
          IMPORTING
-           es_latestround = ls_latestround
-      ).
-      me->map_latestround_to_result(
+           es_latestround = ls_latestround ).
+      map_latestround_to_result(
         EXPORTING
           is_latestround     = ls_latestround
           is_execute_contract_resp = ls_execute_contract_resp
@@ -320,22 +322,20 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           iv_from_currency = lv_from_currency
           iv_to_currency = lv_to_currency
         IMPORTING
-          es_pricefeedresult = ls_pricefeed_result
-      ).
+          es_pricefeedresult = ls_pricefeed_result ).
       DATA: ls_pf_table_result TYPE zif_prvd_chainlink_pricefeed=>tty_pf_result,
             lt_tcurr           TYPE ftdf_tab_tcurr.
-      me->save_result( EXPORTING is_pricefeedresult = ls_pricefeed_result
-                       IMPORTING et_pf_table  = ls_pf_table_result ).
-      me->zif_prvd_chainlink_pricefeed~format_to_market_rates( EXPORTING it_pf_results = ls_pf_table_result
-                                                               IMPORTING et_tcurr = lt_tcurr ).
-      me->zif_prvd_chainlink_pricefeed~update_s4hana_market_rates( EXPORTING it_tcurr = lt_tcurr ).
+      save_result( EXPORTING is_pricefeedresult = ls_pricefeed_result
+                   IMPORTING et_pf_table        = ls_pf_table_result ).
+      zif_prvd_chainlink_pricefeed~format_to_market_rates( EXPORTING it_pf_results = ls_pf_table_result
+                                                           IMPORTING et_tcurr      = lt_tcurr ).
+      zif_prvd_chainlink_pricefeed~update_s4hana_market_rates( it_tcurr = lt_tcurr ).
       IF lv_do_baseline IS NOT INITIAL.
-        me->zif_prvd_chainlink_pricefeed~emit_baseline_zkp_msg(
+        zif_prvd_chainlink_pricefeed~emit_baseline_zkp_msg(
           EXPORTING
-            is_pricefeed_result =  ls_pf_table_result
+            is_pricefeed_result = ls_pf_table_result
           IMPORTING
-            es_bpiobj           = lt_bpi_obj
-        ).
+            es_bpiobj           = lt_bpi_obj ).
         APPEND LINES OF LT_BPI_OBJ TO ET_ZKPS.
       ENDIF.
       APPEND ls_pricefeed_result TO lt_pricefeed_results.
@@ -351,24 +351,19 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
 
       lv_basepath = '/usr/sap/trans/data/'.
 
-      me->zif_prvd_chainlink_pricefeed~generate_s4_market_rate_file(
+      zif_prvd_chainlink_pricefeed~generate_s4_market_rate_file(
         EXPORTING
           it_pricefeed_results = ls_pf_table_result
           iv_basepath          = lv_basepath
         IMPORTING
           ev_filelocation      = lv_filelocation
-          ev_filename = lv_filename
-      ).
-*        lv_filenamestr = lv_filename.
-*        CONCATENATE lv_basepath lv_filename INTO lv_movedfile SEPARATED BY '/'.
-      me->zif_prvd_chainlink_pricefeed~move_file_to_ipfs(
+          ev_filename = lv_filename ).
+      zif_prvd_chainlink_pricefeed~move_file_to_ipfs(
         EXPORTING
           iv_filelocation = lv_filelocation
           iv_ipfsfilename = lv_filename
           IMPORTING
-            ev_contentid    = lv_ipfs_cid
-      ).
-
+            ev_contentid    = lv_ipfs_cid ).
       ev_al11_file = lv_filelocation.
       ev_ipfs_cid = lv_ipfs_cid.
     ENDIF.
@@ -376,15 +371,15 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_nchain_helper.
-    IF lo_prvd_nchain_helper IS BOUND.
-      eo_prvd_nchain_helper = lo_prvd_nchain_helper.
+    IF mo_prvd_nchain_helper IS BOUND.
+      eo_prvd_nchain_helper = mo_prvd_nchain_helper.
     ELSE.
-      lo_prvd_nchain_helper = NEW zcl_proubc_nchain_helper( ).
+      mo_prvd_nchain_helper = NEW zcl_proubc_nchain_helper( ).
     ENDIF.
   ENDMETHOD.
 
   METHOD setup.
-    lv_tenant = iv_tenant.
+    mv_tenant = iv_tenant.
     lv_subj_acct = iv_subj_acct.
     lv_workgroup_id = iv_workgroup_id.
     lv_do_baseline = iv_do_baseline.
@@ -484,7 +479,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     ls_result-updatedat = is_latestround-updatedat.
 
     "format to SAP standards
-    me->format_eth_price(
+    format_eth_price(
       EXPORTING
         iv_chainlink_eth_price =  is_latestround-answer
         iv_to_currency         =  iv_to_currency
@@ -498,7 +493,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
 
     "add some other Nchain and SAP related info
     ls_result-user_responsible = sy-uname.
-    ls_result-networkid =  is_execute_contract_summary-nchain_network_id.
+    ls_result-networkid = is_execute_contract_summary-nchain_network_id.
     ls_result-walletid = is_execute_contract_summary-walletid.
     ls_result-smartcontractaddress = is_execute_contract_summary-smartcontract_addr.
     "pass result
@@ -506,7 +501,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD format_eth_price.
-    DATA: lv_eth_formatted_price TYPE p DECIMALS 5, "9 character decimal type + up to 5 decimal places
+    DATA: lv_eth_formatted_price TYPE p DECIMALS 5, "## 9 character decimal type + up to 5 decimal places
           lv_eth_floated_price   TYPE float,
           lv_float_factor        TYPE float.
 
@@ -524,7 +519,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD format_btc_price.
-    DATA: lv_btc_formatted_price TYPE p DECIMALS 5, "9 character decimal type + up to 5 decimal places
+    DATA: lv_btc_formatted_price TYPE p DECIMALS 5, "## 9 character decimal type + up to 5 decimal places
           lv_btc_floated_price   TYPE float,
           lv_float_factor        TYPE float.
 
@@ -556,7 +551,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           lv_daily_pf_key      TYPE string,
           ls_baselineproto_msg TYPE zif_prvd_chainlink_pricefeed=>ty_baselined_result.
 
-    lo_prvd_api_helper->setup_protocol_msg( IMPORTING setup_success = lv_setup_success ).
+    mo_prvd_api_helper->setup_protocol_msg( IMPORTING setup_success = lv_setup_success ).
 
     LOOP AT is_pricefeed_result ASSIGNING FIELD-SYMBOL(<fs_pricefeed_result>).
       ls_baselineproto_msg-from_currency = <fs_pricefeed_result>-fcurr.
@@ -581,16 +576,16 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
       ls_protocol_msg_req-payload_mimetype = 'json'.
       ls_protocol_msg_req-type = 'PRVDChainlinkPriceFeedSync'.
 
-
       ls_protocol_msg_req-id = lv_daily_pf_key.
 
-
-      lo_prvd_api_helper->send_protocol_msg( EXPORTING body = ls_protocol_msg_req IMPORTING statuscode = lv_status
-                                                                                      apiresponse = lv_apiresponse
-                                                                                      apiresponsestr = lv_apiresponsestr  ). "should return 202
+      mo_prvd_api_helper->send_protocol_msg( EXPORTING body = ls_protocol_msg_req 
+                                             IMPORTING statuscode = lv_status
+                                                       apiresponse = lv_apiresponse
+                                                      apiresponsestr = lv_apiresponsestr ).
 
       IF lv_status = '202'.
-        /ui2/cl_json=>deserialize( EXPORTING json = lv_apiresponsestr  CHANGING data = ls_protocol_msg_resp ).
+        /ui2/cl_json=>deserialize( EXPORTING json = lv_apiresponsestr 
+                                   CHANGING data  = ls_protocol_msg_resp ).
 
         DATA: wa_bpiobj    TYPE zbpiobj,
               lv_timestamp TYPE timestampl.
@@ -598,9 +593,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
         SELECT SINGLE * FROM zbpiobj INTO wa_bpiobj WHERE object_id = ls_protocol_msg_req-id
                                                       AND baseline_id = ls_protocol_msg_resp-baseline_id.
         IF sy-subrc = 0.
-          wa_bpiobj-baseline_id = ls_protocol_msg_resp-baseline_id. "To be provided by api
-          wa_bpiobj-proof = ls_protocol_msg_resp-proof. "To be provided by api
-          "wa_bpiobj-status = ls_protocol_msg_resp-. "To be determined by api response
+          wa_bpiobj-baseline_id = ls_protocol_msg_resp-baseline_id.
+          wa_bpiobj-proof = ls_protocol_msg_resp-proof.
           wa_bpiobj-object_id = ls_protocol_msg_req-id.
           wa_bpiobj-changed_by = sy-uname.
           wa_bpiobj-changed_at = lv_timestamp.
@@ -609,11 +603,10 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           wa_bpiobj-workgroup_id = ls_protocol_msg_resp-workgroup_id.
           wa_bpiobj-subject_account_id = ls_protocol_msg_resp-subject_account_id.
           APPEND wa_bpiobj TO lt_updatedbpis.
-        ELSE.
+        ELSE if sy-subrc = 4.
           GET TIME STAMP FIELD lv_timestamp.
-          wa_bpiobj-baseline_id = ls_protocol_msg_resp-baseline_id. "To be provided by api
-          wa_bpiobj-proof = ls_protocol_msg_resp-proof. "To be provided by api
-          "wa_bpiobj-status = ''. "To be determined by api response
+          wa_bpiobj-baseline_id = ls_protocol_msg_resp-baseline_id. 
+          wa_bpiobj-proof = ls_protocol_msg_resp-proof.
           wa_bpiobj-object_id = ls_protocol_msg_req-id.
           wa_bpiobj-created_by = sy-uname.
           wa_bpiobj-created_at = lv_timestamp.
@@ -624,7 +617,8 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           APPEND wa_bpiobj TO lt_newbpis.
         ENDIF.
         CLEAR: wa_bpiobj.
-      ELSE. "log error message
+      ELSE. 
+      "log error message
       ENDIF.
 
     ENDLOOP.
@@ -653,20 +647,18 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
       IMPORTING
         ev_filecontent_x = lv_filecontent_xstr
         ev_filecontent   = lv_filecontent_str
-        ev_length = lv_xcontentlength
-    ).
+        ev_length        = lv_xcontentlength ).
     zcl_proubc_file_helper=>transfer_file_to_ipfs(
       EXPORTING
-        iv_filecontent_x =  lv_filecontent_xstr
-        iv_filecontent = lv_filecontent_str
-        iv_filename = iv_ipfsfilename
-        iv_filetype = 'json'
-        iv_ipfsprojid    = lv_ipfsprojid
-        iv_ipfsapikey = lv_ipfsapikey
+        iv_filecontent_x  = lv_filecontent_xstr
+        iv_filecontent    = lv_filecontent_str
+        iv_filename       = iv_ipfsfilename
+        iv_filetype       = 'json'
+        iv_ipfsprojid     = lv_ipfsprojid
+        iv_ipfsapikey     = lv_ipfsapikey
         iv_xcontentlength = lv_xcontentlength
      IMPORTING
-       ev_contentid     = ev_contentid
-    ).
+       ev_contentid       = ev_contentid ).
   ENDMETHOD.
 
   METHOD save_result.
@@ -675,7 +667,7 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
 
     "map to to db structure
     ls_prvd_pf_results-fcurr = is_pricefeedresult-from_currency.
-    ls_prvd_pf_results-gdatu = sy-datum. " todo add to is_pricefeedresult
+    ls_prvd_pf_results-gdatu = sy-datum.
     ls_prvd_pf_results-kurst = is_pricefeedresult-exchange_type.
     ls_prvd_pf_results-networkid = is_pricefeedresult-networkid.
     ls_prvd_pf_results-smartcontractaddress = is_pricefeedresult-smartcontractaddress.
@@ -694,6 +686,9 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
     et_pf_table = lt_prvd_pf_results.
     CLEAR ls_prvd_pf_results.
     MODIFY zprvd_pf_results FROM TABLE lt_prvd_pf_results.
+    IF sy-subrc <> 0.
+      "Message error updating price feed results log
+    ENDIF.
 
   ENDMETHOD.
 
@@ -718,25 +713,26 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
           ls_execute_contract_summary   TYPE zif_proubc_nchain=>ty_executecontract_summary.
 
     ls_pricefeedwallet-purpose = 44.
-    lo_prvd_nchain_helper->get_nchain_client( )->zif_proubc_nchain~createhdwallet( EXPORTING is_walletrequest = ls_pricefeedwallet
-                                                         IMPORTING ev_apiresponsestr   = lv_getwallet_str
-                                                                   ev_apiresponse       = lv_getwallet_data
-                                                                   ev_httpresponsecode = lv_getwallet_responsecode ).
+    mo_prvd_nchain_helper->get_nchain_client( )->zif_proubc_nchain~createhdwallet( EXPORTING is_walletrequest    = ls_pricefeedwallet
+                                                                                   IMPORTING ev_apiresponsestr   = lv_getwallet_str
+                                                                                             ev_apiresponse      = lv_getwallet_data
+                                                                                             ev_httpresponsecode = lv_getwallet_responsecode ).
     CASE lv_getwallet_responsecode.
       WHEN 201.
-        /ui2/cl_json=>deserialize( EXPORTING json = lv_getwallet_str CHANGING data = ls_wallet_created ).
-      WHEN OTHERS. "add error handling
+        /ui2/cl_json=>deserialize( EXPORTING json = lv_getwallet_str 
+                                   CHANGING data  = ls_wallet_created ).
+      WHEN OTHERS.
         ev_httpresponsecode = lv_getwallet_responsecode.
         RETURN.
     ENDCASE.
     CONCATENATE iv_selected_pricefeed-from_currency iv_selected_pricefeed-to_currency INTO DATA(lv_pfname) SEPARATED BY '/'.
-    lo_prvd_nchain_helper->smartcontract_factory(  EXPORTING iv_smartcontractaddress = iv_selected_pricefeed-zprvdsmartcontractaddr
-                                          iv_name                 = lv_pfname
-                                          iv_walletaddress        = ls_wallet_created-id  "from the wallet we created earlier
-                                          iv_nchain_networkid     = iv_selected_pricefeed-zprvdnchainnetworkid " polygon mumbai testnet nchain id
-                                          iv_contracttype         = 'price-feed'
-                                IMPORTING es_selectedcontract = ls_selectedcontract ).
-    lo_prvd_nchain_helper->get_nchain_client( )->zif_proubc_nchain~createpricefeedcontract(
+    mo_prvd_nchain_helper->smartcontract_factory(  EXPORTING iv_smartcontractaddress = iv_selected_pricefeed-zprvdsmartcontractaddr
+                                                             iv_name                 = lv_pfname
+                                                             iv_walletaddress        = ls_wallet_created-id 
+                                                             iv_nchain_networkid     = iv_selected_pricefeed-zprvdnchainnetworkid
+                                                             iv_contracttype         = 'price-feed'
+                                                   IMPORTING es_selectedcontract     = ls_selectedcontract ).
+    mo_prvd_nchain_helper->get_nchain_client( )->zif_proubc_nchain~createpricefeedcontract(
       EXPORTING
         iv_smartcontractaddr = iv_selected_pricefeed-zprvdsmartcontractaddr
         is_pricefeedcontract = ls_selectedcontract
@@ -760,14 +756,14 @@ CLASS zcl_prvd_chainlink_pricefeed IMPLEMENTATION.
         ls_executecontract-method = 'latestRoundData'.
         ls_executecontract-value = 0.
         ls_executecontract-wallet_id = ls_wallet_created-id.
-      WHEN 404. "contract not found - might not be deployed
+      WHEN 404.
         ev_httpresponsecode = lv_createdcontract_responsecd.
         RETURN.
       WHEN OTHERS.
         ev_httpresponsecode = lv_createdcontract_responsecd.
         RETURN.
     ENDCASE.
-    lo_prvd_nchain_helper->get_nchain_client( )->zif_proubc_nchain~executecontract(
+    mo_prvd_nchain_helper->get_nchain_client( )->zif_proubc_nchain~executecontract(
        EXPORTING
          iv_contract_id      = lv_prvd_stack_contract_id
          is_execcontractreq  = ls_executecontract
