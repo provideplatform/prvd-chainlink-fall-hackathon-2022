@@ -29,7 +29,7 @@ INITIALIZATION.
   GET PARAMETER ID 'ZPRVDWRKGRPID' FIELD p_wrkgrp.
 
 START-OF-SELECTION.
-  MOVE-CORRESPONDING s_pfids[] TO lt_pf_pairids_rt[].
+  lt_pf_pairids_rt = CORRESPONDING #( s_pfids ).
   lo_prvd_chainlink_pricefeed = NEW zcl_prvd_chainlink_pricefeed( ).
   lo_prvd_chainlink_pricefeed->setup( iv_tenant       = p_tenant
                                       iv_subj_acct    = p_sbjact
@@ -38,16 +38,16 @@ START-OF-SELECTION.
                                       iv_do_ipfs      = p_ipfs
                                       iv_ipfsp        = p_ipfsp
                                       iv_ipfsk        = p_ipfsk ).
-  lo_prvd_chainlink_pricefeed->zif_prvd_chainlink_pricefeed~prvd_authenticate( iv_authtype = 'R'  ).
+  lo_prvd_chainlink_pricefeed->zif_prvd_chainlink_pricefeed~prvd_authenticate( 'R' ).
 
   lo_prvd_chainlink_pricefeed->run_pricefeed_batch(
     EXPORTING
       iv_networkid    = p_netwrk
       it_selected_pfs = lt_pf_pairids_rt
     IMPORTING
-        et_zkps = lt_zkps
+        et_zkps       = lt_zkps
         ev_al11_file  = lv_al11_file
-        ev_ipfs_cid = lv_ipfs_cid ).
+        ev_ipfs_cid   = lv_ipfs_cid ).
 
   LOOP AT lt_pricefeed_messages ASSIGNING FIELD-SYMBOL(<fs_pricefeed_messages>).
   ENDLOOP.

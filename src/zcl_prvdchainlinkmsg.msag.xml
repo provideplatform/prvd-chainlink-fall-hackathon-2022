@@ -15,6 +15,46 @@
      <TEXT>Error retrieving &amp;1 price feed result Nchain HTTP code &amp;2</TEXT>
     </T100>
    </T100>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCL_PRVDCHAINLINKMSG</ARBGB>
+     <MSGNR>001</MSGNR>
+     <TEXT>Error calling PRVD Baseline with HTTP response code &amp;1 </TEXT>
+    </T100>
+   </T100>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCL_PRVDCHAINLINKMSG</ARBGB>
+     <MSGNR>002</MSGNR>
+     <TEXT>Error calling IPFS host &amp;1 with response code &amp;2</TEXT>
+    </T100>
+   </T100>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCL_PRVDCHAINLINKMSG</ARBGB>
+     <MSGNR>003</MSGNR>
+     <TEXT>Selected price feed &amp;1 network &amp;2 not configured</TEXT>
+    </T100>
+   </T100>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCL_PRVDCHAINLINKMSG</ARBGB>
+     <MSGNR>004</MSGNR>
+     <TEXT>Error calling Nchain endpoint &amp;1 response code &amp;2 </TEXT>
+    </T100>
+   </T100>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCL_PRVDCHAINLINKMSG</ARBGB>
+     <MSGNR>004</MSGNR>
+     <TEXT>Error reading field symbol</TEXT>
+    </T100>
+   </T100>
   </asx:values>
  </asx:abap>
 </abapGit>
