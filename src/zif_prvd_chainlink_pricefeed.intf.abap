@@ -46,7 +46,7 @@ INTERFACE zif_prvd_chainlink_pricefeed
          tty_tcurr     TYPE STANDARD TABLE OF tcurr,
          tty_bpiobj    TYPE STANDARD TABLE OF zbpiobj.
 
-  METHODS:  
+  METHODS:
     "! Authenticates the SAP user to their PRVD account via
     prvd_authenticate IMPORTING iv_authtype   TYPE char1
                                 iv_prvduser   TYPE string OPTIONAL

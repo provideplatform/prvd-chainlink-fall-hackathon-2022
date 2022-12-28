@@ -29,7 +29,7 @@ INITIALIZATION.
   GET PARAMETER ID 'ZPRVDWRKGRPID' FIELD p_wrkgrp.
 
 START-OF-SELECTION.
-  lt_pf_pairids_rt = CORRESPONDING #( s_pfids ).
+  MOVE-CORRESPONDING s_pfids[] to lt_pf_pairids_rt[].
   lo_prvd_chainlink_pricefeed = NEW zcl_prvd_chainlink_pricefeed( ).
   lo_prvd_chainlink_pricefeed->setup( iv_tenant       = p_tenant
                                       iv_subj_acct    = p_sbjact
