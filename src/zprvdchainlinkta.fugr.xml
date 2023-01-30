@@ -376,6 +376,7 @@
        <CONT_NAME>TCTRL_ZPRVDPRICEFEED</CONT_NAME>
        <TYPE>TEXT</TYPE>
        <NAME>*ZPRVDPRICEFEED-ZPRVDNCHAINNETWORKID</NAME>
+       <TEXT>PRVD_Nchain_Network_ID__________________</TEXT>
        <LINE>001</LINE>
        <COLUMN>001</COLUMN>
        <LENGTH>040</LENGTH>
@@ -392,6 +393,7 @@
        <CONT_NAME>TCTRL_ZPRVDPRICEFEED</CONT_NAME>
        <TYPE>TEXT</TYPE>
        <NAME>*ZPRVDPRICEFEED-PAIRID</NAME>
+       <TEXT>Pair_ID_________________________________</TEXT>
        <LINE>001</LINE>
        <COLUMN>002</COLUMN>
        <LENGTH>040</LENGTH>
@@ -408,6 +410,7 @@
        <CONT_NAME>TCTRL_ZPRVDPRICEFEED</CONT_NAME>
        <TYPE>TEXT</TYPE>
        <NAME>*ZPRVDPRICEFEED-ZPRVDSMARTCONTRACTADDR</NAME>
+       <TEXT>Smart_contract_address__________________</TEXT>
        <LINE>001</LINE>
        <COLUMN>003</COLUMN>
        <LENGTH>040</LENGTH>
@@ -453,6 +456,7 @@
        <CONT_NAME>TCTRL_ZPRVDPRICEFEED</CONT_NAME>
        <TYPE>TEMPLATE</TYPE>
        <NAME>ZPRVDPRICEFEED-ZPRVDNCHAINNETWORKID</NAME>
+       <TEXT>________________________________________</TEXT>
        <ROLLING>X</ROLLING>
        <LINE>001</LINE>
        <COLUMN>001</COLUMN>
@@ -632,6 +636,7 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEXT</TYPE>
        <NAME>ZPRVDPRICEFEED-ZPRVDNCHAINNETWORKID</NAME>
+       <TEXT>Nchain_Network_ID___</TEXT>
        <LINE>001</LINE>
        <COLUMN>001</COLUMN>
        <LENGTH>020</LENGTH>
@@ -648,6 +653,7 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEMPLATE</TYPE>
        <NAME>ZPRVDPRICEFEED-ZPRVDNCHAINNETWORKID</NAME>
+       <TEXT>________________________________________</TEXT>
        <LINE>001</LINE>
        <COLUMN>022</COLUMN>
        <LENGTH>040</LENGTH>
@@ -665,6 +671,7 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEXT</TYPE>
        <NAME>ZPRVDPRICEFEED-PAIRID</NAME>
+       <TEXT>Pair_ID_____________</TEXT>
        <LINE>002</LINE>
        <COLUMN>001</COLUMN>
        <LENGTH>020</LENGTH>
@@ -681,6 +688,7 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEMPLATE</TYPE>
        <NAME>ZPRVDPRICEFEED-PAIRID</NAME>
+       <TEXT>__________</TEXT>
        <LINE>002</LINE>
        <COLUMN>022</COLUMN>
        <LENGTH>010</LENGTH>
@@ -697,6 +705,7 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEXT</TYPE>
        <NAME>ZPRVDPRICEFEED-ZPRVDSMARTCONTRACTADDR</NAME>
+       <TEXT>Smartcontract_addr</TEXT>
        <LINE>003</LINE>
        <COLUMN>001</COLUMN>
        <LENGTH>018</LENGTH>
@@ -713,6 +722,7 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEMPLATE</TYPE>
        <NAME>ZPRVDPRICEFEED-ZPRVDSMARTCONTRACTADDR</NAME>
+       <TEXT>__________________________________________</TEXT>
        <LINE>003</LINE>
        <COLUMN>022</COLUMN>
        <LENGTH>042</LENGTH>
@@ -746,6 +756,7 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEXT</TYPE>
        <NAME>ZPRVDPRICEFEED-DESCRIPTION</NAME>
+       <TEXT>Char255</TEXT>
        <LINE>006</LINE>
        <COLUMN>002</COLUMN>
        <LENGTH>007</LENGTH>
@@ -780,6 +791,7 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEXT</TYPE>
        <NAME>ZPRVDPRICEFEED-FROM_CURRENCY</NAME>
+       <TEXT>Currency_______</TEXT>
        <LINE>007</LINE>
        <COLUMN>002</COLUMN>
        <LENGTH>015</LENGTH>
@@ -796,6 +808,7 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEMPLATE</TYPE>
        <NAME>ZPRVDPRICEFEED-FROM_CURRENCY</NAME>
+       <TEXT>_____</TEXT>
        <ROLLING>X</ROLLING>
        <LINE>007</LINE>
        <COLUMN>018</COLUMN>
@@ -813,6 +826,7 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEXT</TYPE>
        <NAME>ZPRVDPRICEFEED-TO_CURRENCY</NAME>
+       <TEXT>Currency_______</TEXT>
        <LINE>008</LINE>
        <COLUMN>002</COLUMN>
        <LENGTH>015</LENGTH>
@@ -829,6 +843,7 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEMPLATE</TYPE>
        <NAME>ZPRVDPRICEFEED-TO_CURRENCY</NAME>
+       <TEXT>_____</TEXT>
        <ROLLING>X</ROLLING>
        <LINE>008</LINE>
        <COLUMN>018</COLUMN>

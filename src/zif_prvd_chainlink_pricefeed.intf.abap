@@ -6,13 +6,13 @@ INTERFACE zif_prvd_chainlink_pricefeed
            to_currency          TYPE waers_curc,
            exchange_type        TYPE kurst_curr,
            formatted_amount     TYPE ukurs_curr,
-           smartcontractaddress TYPE zproubc_smartcontract_addr,
+           smartcontractaddress TYPE zprvd_smartcontract_addr,
            prvdstackcontractid  TYPE zcasesensitive_str,
            networkid            TYPE zprvd_nchain_networkid,
            txn_hash             TYPE string,
            txn_processed_at     TYPE timestampl,
            user_responsible     TYPE sy-uname,
-           walletid             TYPE zproubc_smartcontract_addr,
+           walletid             TYPE zprvd_smartcontract_addr,
            answeredinround      TYPE char25,
            roundid              TYPE char25,
            rawanswer            TYPE char80,
@@ -31,7 +31,7 @@ INTERFACE zif_prvd_chainlink_pricefeed
 
   TYPES: BEGIN OF ty_baselined_result,
            networkid            TYPE zprvd_nchain_networkid,
-           smartcontractaddress TYPE zproubc_smartcontract_addr,
+           smartcontractaddress TYPE zprvd_smartcontract_addr,
            from_currency        TYPE waers_curc,
            to_currency          TYPE waers_curc,
            exchange_type        TYPE kurst_curr,
@@ -55,8 +55,8 @@ INTERFACE zif_prvd_chainlink_pricefeed
     call_chainlink_pricefeeds,
     "! Executes the selected Chainlink price feed
     execute_chainlink_pricefeed IMPORTING iv_selected_pricefeed       TYPE zprvdpricefeed
-                                EXPORTING es_execute_contract_resp    TYPE zif_proubc_nchain=>ty_executecontract_resp
-                                          es_execute_contract_summary TYPE zif_proubc_nchain=>ty_executecontract_summary
+                                EXPORTING es_execute_contract_resp    TYPE zif_prvd_nchain=>ty_executecontract_resp
+                                          es_execute_contract_summary TYPE zif_prvd_nchain=>ty_executecontract_summary
                                           ev_httpresponsecode TYPE i,
     "! Generates a file representing the price feed results
     generate_s4_market_rate_file IMPORTING it_pricefeed_results TYPE tty_pf_result
