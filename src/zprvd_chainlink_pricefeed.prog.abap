@@ -29,26 +29,25 @@ INITIALIZATION.
   GET PARAMETER ID 'ZPRVDWRKGRPID' FIELD p_wrkgrp.
 
 START-OF-SELECTION.
-  MOVE-CORRESPONDING s_pfids[] TO lt_pf_pairids_rt[].
+  MOVE-CORRESPONDING s_pfids[] to lt_pf_pairids_rt[].
   lo_prvd_chainlink_pricefeed = NEW zcl_prvd_chainlink_pricefeed( ).
-  lo_prvd_chainlink_pricefeed->setup( EXPORTING iv_tenant = p_tenant
-                                                iv_subj_acct = p_sbjact
-                                                iv_workgroup_id = p_wrkgrp
-                                                iv_do_baseline = p_zkp
-                                                iv_do_ipfs = p_ipfs
-                                                iv_ipfsp = p_ipfsp
-                                                iv_ipfsk = p_ipfsk ).
-  lo_prvd_chainlink_pricefeed->zif_prvd_chainlink_pricefeed~prvd_authenticate( iv_authtype = 'R'  ).
+  lo_prvd_chainlink_pricefeed->setup( iv_tenant       = p_tenant
+                                      iv_subj_acct    = p_sbjact
+                                      iv_workgroup_id = p_wrkgrp
+                                      iv_do_baseline  = p_zkp
+                                      iv_do_ipfs      = p_ipfs
+                                      iv_ipfsp        = p_ipfsp
+                                      iv_ipfsk        = p_ipfsk ).
+  lo_prvd_chainlink_pricefeed->zif_prvd_chainlink_pricefeed~prvd_authenticate( 'R' ).
 
   lo_prvd_chainlink_pricefeed->run_pricefeed_batch(
     EXPORTING
       iv_networkid    = p_netwrk
       it_selected_pfs = lt_pf_pairids_rt
     IMPORTING
-        et_zkps = lt_zkps
+        et_zkps       = lt_zkps
         ev_al11_file  = lv_al11_file
-        ev_ipfs_cid = lv_ipfs_cid
-  ).
+        ev_ipfs_cid   = lv_ipfs_cid ).
 
   LOOP AT lt_pricefeed_messages ASSIGNING FIELD-SYMBOL(<fs_pricefeed_messages>).
   ENDLOOP.
@@ -56,21 +55,18 @@ START-OF-SELECTION.
   IF p_zkp = 'X'.
     NEW-LINE.
     WRITE: 'Created PRVD Baseline ZKP for the price feed result use'.
-    "todo list the ZKPs here
     LOOP AT lt_zkps ASSIGNING FIELD-SYMBOL(<fs_zkp>).
       NEW-LINE.
       WRITE: 'Created PRVD Baseline ZKP:', 30 <fs_zkp>-proof(50), 100 <fs_zkp>-object_id.
     ENDLOOP.
-
   ENDIF.
 
   IF p_ipfs = 'X'.
     ULINE.
     NEW-LINE.
-    WRITE: 'Shared price feed results to IPFS!'.
+    WRITE 'Shared price feed results to IPFS!'.
     NEW-LINE.
     WRITE: 'Created file in AL11:', 40 lv_al11_file.
     NEW-LINE.
     WRITE: 'Content ID in IPFS:', 40 lv_ipfs_cid.
-    "todo list content ids / file ids
   ENDIF.
